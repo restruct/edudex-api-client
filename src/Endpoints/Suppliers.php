@@ -21,7 +21,7 @@ class Suppliers extends BaseEndpoint
      */
     public function list(): array
     {
-        $response = $this->get('suppliers');
+        $response = $this->sendGet('suppliers');
         $items = $this->extractListItems($response, 'suppliers');
 
         return $this->hydrateModels(Supplier::class, $items);
@@ -35,7 +35,7 @@ class Suppliers extends BaseEndpoint
      */
     public function get(string $orgUnitId): Supplier
     {
-        $response = $this->get("suppliers/{$orgUnitId}");
+        $response = $this->sendGet("suppliers/{$orgUnitId}");
         return $this->hydrateModel(Supplier::class, $response);
     }
 
@@ -47,7 +47,7 @@ class Suppliers extends BaseEndpoint
      */
     public function getMetadata(string $orgUnitId): array
     {
-        return $this->get("suppliers/{$orgUnitId}/metadata");
+        return $this->sendGet("suppliers/{$orgUnitId}/metadata");
     }
 
     /**
@@ -61,7 +61,7 @@ class Suppliers extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'metadata'), ['orgUnitId', 'metadata']);
 
-        return $this->put("suppliers/{$orgUnitId}/metadata", $metadata);
+        return $this->sendPut("suppliers/{$orgUnitId}/metadata", $metadata);
     }
 
     /**
@@ -74,7 +74,7 @@ class Suppliers extends BaseEndpoint
     public function listPrograms(string $orgUnitId, ?string $clientId = null): array
     {
         $query = $this->buildQuery(['clientId' => $clientId]);
-        $response = $this->get("suppliers/{$orgUnitId}/programs", $query);
+        $response = $this->sendGet("suppliers/{$orgUnitId}/programs", $query);
 
         return $this->extractListItems($response, 'programs');
     }
@@ -92,7 +92,7 @@ class Suppliers extends BaseEndpoint
         $this->validateRequired(compact('orgUnitId', 'programId', 'clientId'), ['orgUnitId', 'programId', 'clientId']);
 
         $query = ['clientId' => $clientId];
-        $response = $this->get("suppliers/{$orgUnitId}/programs/{$programId}", $query);
+        $response = $this->sendGet("suppliers/{$orgUnitId}/programs/{$programId}", $query);
 
         return $this->hydrateModel(Program::class, $response);
     }
@@ -114,7 +114,7 @@ class Suppliers extends BaseEndpoint
         );
 
         $query = ['clientId' => $clientId];
-        $response = $this->put("suppliers/{$orgUnitId}/programs/{$programId}", $programData, [], $query);
+        $response = $this->sendPut("suppliers/{$orgUnitId}/programs/{$programId}", $programData, [], $query);
 
         return $this->hydrateModel(Program::class, $response);
     }
@@ -132,7 +132,7 @@ class Suppliers extends BaseEndpoint
         $this->validateRequired(compact('orgUnitId', 'programId', 'clientId'), ['orgUnitId', 'programId', 'clientId']);
 
         $query = ['clientId' => $clientId];
-        $this->delete("suppliers/{$orgUnitId}/programs/{$programId}", [], $query);
+        $this->sendDelete("suppliers/{$orgUnitId}/programs/{$programId}", [], $query);
     }
 
     /**
@@ -143,7 +143,7 @@ class Suppliers extends BaseEndpoint
      */
     public function listDiscounts(string $orgUnitId): array
     {
-        $response = $this->get("suppliers/{$orgUnitId}/discounts");
+        $response = $this->sendGet("suppliers/{$orgUnitId}/discounts");
         return $this->extractListItems($response, 'clients');
     }
 
@@ -156,7 +156,7 @@ class Suppliers extends BaseEndpoint
      */
     public function getDiscounts(string $orgUnitId, string $clientId): array
     {
-        return $this->get("suppliers/{$orgUnitId}/discounts/{$clientId}");
+        return $this->sendGet("suppliers/{$orgUnitId}/discounts/{$clientId}");
     }
 
     /**
@@ -171,7 +171,7 @@ class Suppliers extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'clientId', 'discounts'), ['orgUnitId', 'clientId', 'discounts']);
 
-        return $this->put("suppliers/{$orgUnitId}/discounts/{$clientId}", $discounts);
+        return $this->sendPut("suppliers/{$orgUnitId}/discounts/{$clientId}", $discounts);
     }
 
     /**
@@ -183,7 +183,7 @@ class Suppliers extends BaseEndpoint
      */
     public function deleteDiscounts(string $orgUnitId, string $clientId): void
     {
-        $this->delete("suppliers/{$orgUnitId}/discounts/{$clientId}");
+        $this->sendDelete("suppliers/{$orgUnitId}/discounts/{$clientId}");
     }
 
     /**

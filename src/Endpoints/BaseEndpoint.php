@@ -44,7 +44,7 @@ abstract class BaseEndpoint
     }
 
     /**
-     * Make a GET request
+     * Send a GET request
      *
      * @param string $path
      * @param array $query
@@ -52,13 +52,13 @@ abstract class BaseEndpoint
      * @return array
      * @throws EduDexException
      */
-    protected function get(string $path, array $query = [], array $headers = []): array
+    protected function sendGet(string $path, array $query = [], array $headers = []): array
     {
         return $this->client->get($path, $query, $headers);
     }
 
     /**
-     * Make a POST request
+     * Send a POST request
      *
      * @param string $path
      * @param array $data
@@ -66,13 +66,13 @@ abstract class BaseEndpoint
      * @return array
      * @throws EduDexException
      */
-    protected function post(string $path, array $data = [], array $headers = []): array
+    protected function sendPost(string $path, array $data = [], array $headers = []): array
     {
         return $this->client->post($path, $data, $headers);
     }
 
     /**
-     * Make a PUT request
+     * Send a PUT request
      *
      * @param string $path
      * @param array $data
@@ -80,13 +80,13 @@ abstract class BaseEndpoint
      * @return array
      * @throws EduDexException
      */
-    protected function put(string $path, array $data = [], array $headers = []): array
+    protected function sendPut(string $path, array $data = [], array $headers = []): array
     {
         return $this->client->put($path, $data, $headers);
     }
 
     /**
-     * Make a PATCH request
+     * Send a PATCH request
      *
      * @param string $path
      * @param array $data
@@ -94,20 +94,20 @@ abstract class BaseEndpoint
      * @return array
      * @throws EduDexException
      */
-    protected function patch(string $path, array $data = [], array $headers = []): array
+    protected function sendPatch(string $path, array $data = [], array $headers = []): array
     {
         return $this->client->patch($path, $data, $headers);
     }
 
     /**
-     * Make a DELETE request
+     * Send a DELETE request
      *
      * @param string $path
      * @param array $headers
      * @return array
      * @throws EduDexException
      */
-    protected function delete(string $path, array $headers = []): array
+    protected function sendDelete(string $path, array $headers = []): array
     {
         return $this->client->delete($path, $headers);
     }

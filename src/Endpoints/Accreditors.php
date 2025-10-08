@@ -21,7 +21,7 @@ class Accreditors extends BaseEndpoint
      */
     public function list(): array
     {
-        $response = $this->get('accreditors');
+        $response = $this->sendGet('accreditors');
         $items = $this->extractListItems($response, 'accreditors');
 
         return $this->hydrateModels(Accreditor::class, $items);
@@ -35,7 +35,7 @@ class Accreditors extends BaseEndpoint
      */
     public function get(string $orgUnitId): Accreditor
     {
-        $response = $this->get("accreditors/{$orgUnitId}");
+        $response = $this->sendGet("accreditors/{$orgUnitId}");
         return $this->hydrateModel(Accreditor::class, $response);
     }
 
@@ -47,7 +47,7 @@ class Accreditors extends BaseEndpoint
      */
     public function listAccreditations(string $orgUnitId): array
     {
-        $response = $this->get("accreditors/{$orgUnitId}/accreditations");
+        $response = $this->sendGet("accreditors/{$orgUnitId}/accreditations");
         $items = $this->extractListItems($response, 'accreditations');
 
         return $this->hydrateModels(Accreditation::class, $items);
@@ -62,7 +62,7 @@ class Accreditors extends BaseEndpoint
      */
     public function getAccreditation(string $orgUnitId, string $accreditationId): Accreditation
     {
-        $response = $this->get("accreditors/{$orgUnitId}/accreditations/{$accreditationId}");
+        $response = $this->sendGet("accreditors/{$orgUnitId}/accreditations/{$accreditationId}");
         return $this->hydrateModel(Accreditation::class, $response);
     }
 
@@ -80,7 +80,7 @@ class Accreditors extends BaseEndpoint
             ['orgUnitId', 'accreditation', 'validFrom', 'validUntil']
         );
 
-        $response = $this->post("accreditors/{$orgUnitId}/accreditations", $data);
+        $response = $this->sendPost("accreditors/{$orgUnitId}/accreditations", $data);
         return $this->hydrateModel(Accreditation::class, $response);
     }
 
@@ -99,7 +99,7 @@ class Accreditors extends BaseEndpoint
             ['orgUnitId', 'accreditationId']
         );
 
-        $response = $this->patch("accreditors/{$orgUnitId}/accreditations/{$accreditationId}", $data);
+        $response = $this->sendPatch("accreditors/{$orgUnitId}/accreditations/{$accreditationId}", $data);
         return $this->hydrateModel(Accreditation::class, $response);
     }
 
@@ -112,6 +112,6 @@ class Accreditors extends BaseEndpoint
      */
     public function deleteAccreditation(string $orgUnitId, string $accreditationId): void
     {
-        $this->delete("accreditors/{$orgUnitId}/accreditations/{$accreditationId}");
+        $this->sendDelete("accreditors/{$orgUnitId}/accreditations/{$accreditationId}");
     }
 }

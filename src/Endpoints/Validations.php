@@ -21,7 +21,7 @@ class Validations extends BaseEndpoint
      */
     public function validateProgram(array $programData): ValidationResult
     {
-        $response = $this->post('validations/programs', $programData);
+        $response = $this->sendPost('validations/programs', $programData);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 
@@ -33,7 +33,7 @@ class Validations extends BaseEndpoint
      */
     public function validateInstitute(array $instituteData): ValidationResult
     {
-        $response = $this->post('validations/institutes', $instituteData);
+        $response = $this->sendPost('validations/institutes', $instituteData);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 
@@ -45,7 +45,7 @@ class Validations extends BaseEndpoint
      */
     public function validateDiscounts(array $discountData): ValidationResult
     {
-        $response = $this->post('validations/discounts', $discountData);
+        $response = $this->sendPost('validations/discounts', $discountData);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 

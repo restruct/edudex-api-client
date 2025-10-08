@@ -35,7 +35,7 @@ class Programs extends BaseEndpoint
             'viewDiscountsForOrgUnitId' => $viewDiscountsForOrgUnitId,
         ]);
 
-        return $this->post('programs/bulk', $data, [], $query);
+        return $this->sendPost('programs/bulk', $data, [], $query);
     }
 
     /**

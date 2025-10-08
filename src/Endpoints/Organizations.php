@@ -23,7 +23,7 @@ class Organizations extends BaseEndpoint
      */
     public function list(): array
     {
-        $response = $this->get('organizations');
+        $response = $this->sendGet('organizations');
         $items = $this->extractListItems($response, 'organizations');
 
         return $this->hydrateModels(Organization::class, $items);
@@ -37,7 +37,7 @@ class Organizations extends BaseEndpoint
      */
     public function get(string $orgUnitId): Organization
     {
-        $response = $this->get("organizations/{$orgUnitId}");
+        $response = $this->sendGet("organizations/{$orgUnitId}");
         return $this->hydrateModel(Organization::class, $response);
     }
 
@@ -49,7 +49,7 @@ class Organizations extends BaseEndpoint
      */
     public function listCatalogs(string $orgUnitId): array
     {
-        $response = $this->get("organizations/{$orgUnitId}/catalogs");
+        $response = $this->sendGet("organizations/{$orgUnitId}/catalogs");
         return $this->extractListItems($response, 'catalogs');
     }
 
@@ -61,7 +61,7 @@ class Organizations extends BaseEndpoint
      */
     public function listStaticCatalogs(string $orgUnitId): array
     {
-        $response = $this->get("organizations/{$orgUnitId}/staticcatalogs");
+        $response = $this->sendGet("organizations/{$orgUnitId}/staticcatalogs");
         $items = $this->extractListItems($response, 'catalogs');
 
         return $this->hydrateModels(StaticCatalog::class, $items);
@@ -76,7 +76,7 @@ class Organizations extends BaseEndpoint
      */
     public function getStaticCatalog(string $orgUnitId, string $catalogId): StaticCatalog
     {
-        $response = $this->get("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}");
+        $response = $this->sendGet("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}");
         return $this->hydrateModel(StaticCatalog::class, $response);
     }
 
@@ -92,7 +92,7 @@ class Organizations extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'title', 'clientId'), ['orgUnitId', 'title', 'clientId']);
 
-        $response = $this->post("organizations/{$orgUnitId}/staticcatalogs", [
+        $response = $this->sendPost("organizations/{$orgUnitId}/staticcatalogs", [
             'title' => $title,
             'clientId' => $clientId,
         ]);
@@ -112,7 +112,7 @@ class Organizations extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'catalogId', 'title'), ['orgUnitId', 'catalogId', 'title']);
 
-        $response = $this->patch("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}", [
+        $response = $this->sendPatch("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}", [
             'title' => $title,
         ]);
 
@@ -128,7 +128,7 @@ class Organizations extends BaseEndpoint
      */
     public function deleteStaticCatalog(string $orgUnitId, string $catalogId): void
     {
-        $this->delete("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}");
+        $this->sendDelete("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}");
     }
 
     /**
@@ -141,7 +141,7 @@ class Organizations extends BaseEndpoint
      */
     public function bulkAddPrograms(string $orgUnitId, string $catalogId, array $programs): array
     {
-        return $this->post("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}/programs/bulkadd", [
+        return $this->sendPost("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}/programs/bulkadd", [
             'programs' => $programs,
         ]);
     }
@@ -156,7 +156,7 @@ class Organizations extends BaseEndpoint
      */
     public function bulkRemovePrograms(string $orgUnitId, string $catalogId, array $programs): array
     {
-        return $this->post("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}/programs/bulkremove", [
+        return $this->sendPost("organizations/{$orgUnitId}/staticcatalogs/{$catalogId}/programs/bulkremove", [
             'programs' => $programs,
         ]);
     }
@@ -169,7 +169,7 @@ class Organizations extends BaseEndpoint
      */
     public function listDynamicCatalogs(string $orgUnitId): array
     {
-        $response = $this->get("organizations/{$orgUnitId}/dynamiccatalogs");
+        $response = $this->sendGet("organizations/{$orgUnitId}/dynamiccatalogs");
         $items = $this->extractListItems($response, 'catalogs');
 
         return $this->hydrateModels(DynamicCatalog::class, $items);
@@ -184,7 +184,7 @@ class Organizations extends BaseEndpoint
      */
     public function getDynamicCatalog(string $orgUnitId, string $catalogId): DynamicCatalog
     {
-        $response = $this->get("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}");
+        $response = $this->sendGet("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}");
         return $this->hydrateModel(DynamicCatalog::class, $response);
     }
 
@@ -214,7 +214,7 @@ class Organizations extends BaseEndpoint
             $data['regionFilter'] = $regionFilter;
         }
 
-        $response = $this->post("organizations/{$orgUnitId}/dynamiccatalogs", $data);
+        $response = $this->sendPost("organizations/{$orgUnitId}/dynamiccatalogs", $data);
 
         return $this->hydrateModel(DynamicCatalog::class, $response);
     }
@@ -244,7 +244,7 @@ class Organizations extends BaseEndpoint
             $data['regionFilter'] = $regionFilter;
         }
 
-        $response = $this->patch("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}", $data);
+        $response = $this->sendPatch("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}", $data);
 
         return $this->hydrateModel(DynamicCatalog::class, $response);
     }
@@ -258,7 +258,7 @@ class Organizations extends BaseEndpoint
      */
     public function deleteDynamicCatalog(string $orgUnitId, string $catalogId): void
     {
-        $this->delete("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}");
+        $this->sendDelete("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}");
     }
 
     /**
@@ -271,7 +271,7 @@ class Organizations extends BaseEndpoint
      */
     public function addSupplierToDynamicCatalog(string $orgUnitId, string $catalogId, string $supplierId): array
     {
-        return $this->put("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}/suppliers/{$supplierId}", []);
+        return $this->sendPut("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}/suppliers/{$supplierId}", []);
     }
 
     /**
@@ -284,7 +284,7 @@ class Organizations extends BaseEndpoint
      */
     public function removeSupplierFromDynamicCatalog(string $orgUnitId, string $catalogId, string $supplierId): void
     {
-        $this->delete("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}/suppliers/{$supplierId}");
+        $this->sendDelete("organizations/{$orgUnitId}/dynamiccatalogs/{$catalogId}/suppliers/{$supplierId}");
     }
 
     /**
@@ -295,7 +295,7 @@ class Organizations extends BaseEndpoint
      */
     public function listWebhooks(string $orgUnitId): array
     {
-        $response = $this->get("organizations/{$orgUnitId}/webhooks");
+        $response = $this->sendGet("organizations/{$orgUnitId}/webhooks");
         $items = $this->extractListItems($response, 'webhooks');
 
         return $this->hydrateModels(Webhook::class, $items);
@@ -310,7 +310,7 @@ class Organizations extends BaseEndpoint
      */
     public function getWebhook(string $orgUnitId, string $webhookId): Webhook
     {
-        $response = $this->get("organizations/{$orgUnitId}/webhooks/{$webhookId}");
+        $response = $this->sendGet("organizations/{$orgUnitId}/webhooks/{$webhookId}");
         return $this->hydrateModel(Webhook::class, $response);
     }
 
@@ -326,7 +326,7 @@ class Organizations extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'url', 'events'), ['orgUnitId', 'url', 'events']);
 
-        $response = $this->post("organizations/{$orgUnitId}/webhooks", [
+        $response = $this->sendPost("organizations/{$orgUnitId}/webhooks", [
             'url' => $url,
             'events' => $events,
         ]);
@@ -364,7 +364,7 @@ class Organizations extends BaseEndpoint
             $data['active'] = $active;
         }
 
-        $response = $this->patch("organizations/{$orgUnitId}/webhooks/{$webhookId}", $data);
+        $response = $this->sendPatch("organizations/{$orgUnitId}/webhooks/{$webhookId}", $data);
 
         return $this->hydrateModel(Webhook::class, $response);
     }
@@ -378,7 +378,7 @@ class Organizations extends BaseEndpoint
      */
     public function deleteWebhook(string $orgUnitId, string $webhookId): void
     {
-        $this->delete("organizations/{$orgUnitId}/webhooks/{$webhookId}");
+        $this->sendDelete("organizations/{$orgUnitId}/webhooks/{$webhookId}");
     }
 
     /**
@@ -390,6 +390,6 @@ class Organizations extends BaseEndpoint
      */
     public function testWebhook(string $orgUnitId, string $webhookId): array
     {
-        return $this->post("organizations/{$orgUnitId}/webhooks/{$webhookId}/test", []);
+        return $this->sendPost("organizations/{$orgUnitId}/webhooks/{$webhookId}/test", []);
     }
 }
