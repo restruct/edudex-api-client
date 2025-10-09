@@ -214,10 +214,9 @@ Add to `app/_config/edudex.yml`:
 Name: app-edudex
 ---
 
-# SilverStripe Client configuration
+# SilverStripe Client configuration (optional)
 Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   api_base_url: 'https://api.edudex.nl/data/v1/'
-  bearer_token: '`EDUDEX_API_TOKEN`'
   timeout: 30
 
 # Configure Injector
@@ -291,7 +290,7 @@ See [docs/SILVERSTRIPE_INTEGRATION.md](docs/SILVERSTRIPE_INTEGRATION.md) for com
 
 ## Requirements
 
-- PHP 8.1 or higher
+- PHP 8.1 or higher (PHP 7.4 version in backport branch)
 - GuzzleHTTP ^7.0
 - PSR-3 Logger interface
 
@@ -317,21 +316,13 @@ composer cs-check
 composer cs-fix
 ```
 
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
 ## Support
 
-- **API Documentation**: https://api.edudex.nl/data/v1/
 - **Issues**: https://github.com/restruct/edudex-api-client/issues
-- **Discussions**: https://github.com/restruct/edudex-api-client/discussions
+- **EDU-DEX Data API Documentation**: https://api.edudex.nl/data/v1/
+- **EDU-DEX Data API in Swagger**: https://api.edudex.nl/data/v1/openapi/swagger-ui
+- **EDUDOX**: https://www.edudex.nl/edudox/
+- **API Getting started**: https://mijn.edudex.nl/api-getting-started/
 
 ## License
 
@@ -339,10 +330,8 @@ This library is open-sourced software licensed under the [MIT license](LICENSE).
 
 ## Credits
 
-- **Mic** (Restruct) - Lead developer
+- **Michael van Schaik** (Restruct) - development
+- **Bart van Irsel** (Webium) - AI consultant/guru
 - **Claude** (Anthropic) - AI co-author and code generation
 - EDU-DEX API by WebHare BV
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
