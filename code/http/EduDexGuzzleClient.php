@@ -197,7 +197,7 @@ class EduDexGuzzleClient implements EduDexClientInterface
     {
         // Handle network errors (no response)
         if (!$e instanceof RequestException || !$e->hasResponse()) {
-            return ApiException::networkError($e->getMessage());
+            return EduDexApiException::networkError($e->getMessage());
         }
 
         $response = $e->getResponse();
@@ -214,15 +214,15 @@ class EduDexGuzzleClient implements EduDexClientInterface
         // Handle specific error types
         // Authentication errors
         if ($statusCode === 401) {
-            return AuthenticationException::invalidCredentials($message);
+            return EduDexAuthenticationException::invalidCredentials($message);
         }
         if ($statusCode === 403) {
-            return AuthenticationException::forbidden($message);
+            return EduDexAuthenticationException::forbidden($message);
         }
 
         // Validation errors
         if ($statusCode === 400 && isset($data['messages'])) {
-            return new ValidationException(
+            return new EduDexValidationException(
                 $message,
                 $data['messages'],
                 $statusCode
@@ -231,22 +231,22 @@ class EduDexGuzzleClient implements EduDexClientInterface
 
         // Not found
         if ($statusCode === 404) {
-            return ApiException::notFound($message);
+            return EduDexApiException::notFound($message);
         }
 
         // Timeout
         if ($statusCode === 408) {
-            return ApiException::timeout();
+            return EduDexApiException::timeout();
         }
 
         // Server errors
         if ($statusCode >= 500) {
-            return ApiException::serverError($message);
+            return EduDexApiException::serverError($message);
         }
 
         // Other client errors
         if ($statusCode >= 400 && $statusCode < 500) {
-            return ApiException::badRequest($message, $data);
+            return EduDexApiException::badRequest($message, $data);
         }
 
         // Fallback

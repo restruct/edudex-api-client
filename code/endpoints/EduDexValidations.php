@@ -15,7 +15,8 @@ class EduDexValidations extends EduDexBaseEndpoint
      */
     public function validateProgram($programData)
     {
-        $response = $this->sendPost('validations/programs', $programData);
+        $data = $this->wrapInDataKey($programData);
+        $response = $this->sendPost('validations/programs', [ 'data' => $data]);
         return $this->hydrateModel('EduDexValidationResult', $response);
     }
 
@@ -27,7 +28,8 @@ class EduDexValidations extends EduDexBaseEndpoint
      */
     public function validateInstitute($instituteData)
     {
-        $response = $this->sendPost('validations/institutes', $instituteData);
+        $data = $this->wrapInDataKey($instituteData);
+        $response = $this->sendPost('validations/institutes', $data);
         return $this->hydrateModel('EduDexValidationResult', $response);
     }
 
@@ -39,7 +41,8 @@ class EduDexValidations extends EduDexBaseEndpoint
      */
     public function validateDiscounts($discountData)
     {
-        $response = $this->sendPost('validations/discounts', $discountData);
+        $data = $this->wrapInDataKey($discountData);
+        $response = $this->sendPost('validations/discounts', $data);
         return $this->hydrateModel('EduDexValidationResult', $response);
     }
 
@@ -85,5 +88,20 @@ class EduDexValidations extends EduDexBaseEndpoint
     public function isValid($result)
     {
         return $result->isValid();
+    }
+
+    /**
+     * Wrap data in 'data' key if not already wrapped
+     *
+     * @param array $data
+     * @return array
+     */
+    private function wrapInDataKey($data)
+    {
+        if (isset($data['data'])) {
+            return $data;
+        }
+
+        return ['data' => $data];
     }
 }
