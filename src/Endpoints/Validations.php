@@ -21,7 +21,8 @@ class Validations extends BaseEndpoint
      */
     public function validateProgram(array $programData): ValidationResult
     {
-        $response = $this->sendPost('validations/programs', $programData);
+        $data = $this->wrapInDataKey($programData);
+        $response = $this->sendPost('validations/programs', $data);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 
@@ -33,7 +34,8 @@ class Validations extends BaseEndpoint
      */
     public function validateInstitute(array $instituteData): ValidationResult
     {
-        $response = $this->sendPost('validations/institutes', $instituteData);
+        $data = $this->wrapInDataKey($instituteData);
+        $response = $this->sendPost('validations/institutes', $data);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 
@@ -45,7 +47,8 @@ class Validations extends BaseEndpoint
      */
     public function validateDiscounts(array $discountData): ValidationResult
     {
-        $response = $this->sendPost('validations/discounts', $discountData);
+        $data = $this->wrapInDataKey($discountData);
+        $response = $this->sendPost('validations/discounts', $data);
         return $this->hydrateModel(ValidationResult::class, $response);
     }
 
@@ -91,5 +94,20 @@ class Validations extends BaseEndpoint
     public function isValid(ValidationResult $result): bool
     {
         return $result->isValid();
+    }
+
+    /**
+     * Wrap data in 'data' key if not already wrapped
+     *
+     * @param array $data
+     * @return array
+     */
+    private function wrapInDataKey(array $data): array
+    {
+        if (isset($data['data'])) {
+            return $data;
+        }
+
+        return ['data' => $data];
     }
 }
