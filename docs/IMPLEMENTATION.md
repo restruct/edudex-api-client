@@ -11,8 +11,6 @@ Complete PHP EduDex API client scaffolded from `openapi-edudex-spec.json`, follo
 ```
 app/src/EduDex/
 ├── Client.php                      # Main API client entry point
-├── Config/
-│   └── EduDexConfig.php           # SilverStripe config class
 ├── Endpoints/                      # API endpoint classes
 │   ├── BaseEndpoint.php
 │   ├── Organizations.php
@@ -235,18 +233,21 @@ class ImportCoursesTask extends BuildTask
 
 ### app/_config/edudex.yml
 ```yaml
-Restruct\EduDex\Client:
+# Note: Bearer token must be set via EDUDEX_API_TOKEN environment variable
+Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   api_base_url: 'https://api.edudex.nl/data/v1/'
-  bearer_token: '`EDUDEX_API_TOKEN`'
   timeout: 30
-
-Restruct\EduDex\Config\EduDexConfig:
   debug: false
   cache_ttl: 3600
+
+# Map base Client to SilverStripeClient via Injector
+SilverStripe\Core\Injector\Injector:
+  Restruct\EduDex\Client:
+    class: Restruct\EduDex\Integration\SilverStripe\SilverStripeClient
 ```
 
 ### Environment Variables
-- `EDUDEX_API_TOKEN` - JWT bearer token (required)
+- `EDUDEX_API_TOKEN` - JWT bearer token (required, cannot be set via Config)
 
 ## API Coverage
 

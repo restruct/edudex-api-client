@@ -56,9 +56,7 @@ New optional integration layer for SilverStripe projects:
 
 ```
 Integration/SilverStripe/
-├── SilverStripeClient.php     # Extends base Client, adds SS features
-├── Config/
-│   └── EduDexConfig.php        # Config class (moved from root)
+├── SilverStripeClient.php      # Extends base Client, adds SS features
 └── Extensions/
     └── SiteConfigExtension.php # CMS integration (moved from root)
 ```
@@ -75,10 +73,8 @@ Integration/SilverStripe/
 Before:                         After:
 ------                          -----
 Client.php                      Client.php (framework-agnostic)
-Config/                         Integration/SilverStripe/
-  └── EduDexConfig.php           ├── SilverStripeClient.php
-Extensions/                      ├── Config/
-  └── SiteConfigExtension.php    │   └── EduDexConfig.php
+Extensions/                     Integration/SilverStripe/
+  └── SiteConfigExtension.php    ├── SilverStripeClient.php
                                  └── Extensions/
                                      └── SiteConfigExtension.php
 ```
@@ -89,9 +85,9 @@ Extensions/                      ├── Config/
 
 ```yaml
 # Now uses SilverStripeClient instead of base Client
+# Bearer token must be set via EDUDEX_API_TOKEN environment variable
 Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   api_base_url: 'https://api.edudex.nl/data/v1/'
-  bearer_token: '`EDUDEX_API_TOKEN`'
   timeout: 30
 
 # Injector configured to use SilverStripeClient

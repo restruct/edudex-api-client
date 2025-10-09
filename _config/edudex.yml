@@ -2,40 +2,13 @@
 Name: app-edudex
 ---
 
-# SilverStripe-specific EduDex API Configuration
-# For non-SilverStripe projects, use the base Restruct\EduDex\Client class
-
-# SilverStripe Client configuration
-Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
-  # API base URL (default production URL)
-  api_base_url: 'https://api.edudex.nl/data/v1/'
-
-  # Bearer token - use backticks for environment variables
-  bearer_token: '`EDUDEX_API_TOKEN`'
-
-  # Request timeout in seconds
-  timeout: 30
-
-  # Enable debug logging (logs all requests/responses)
-  debug: false
-
-  # Cache TTL for API responses (seconds, 0 to disable)
-  cache_ttl: 3600
-
-# Legacy Config class (now in Integration namespace)
-Restruct\EduDex\Integration\SilverStripe\Config\EduDexConfig:
-  api_base_url: 'https://api.edudex.nl/data/v1/'
-  bearer_token: '`EDUDEX_API_TOKEN`'
-  timeout: 30
-  debug: false
-  cache_ttl: 3600
-
 # Add EduDex configuration to SiteConfig
 SilverStripe\SiteConfig\SiteConfig:
   extensions:
     - Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension
 
 # Configure Injector to use SilverStripeClient when requesting base Client
+# For non-SilverStripe projects, use the base Restruct\EduDex\Client class
 SilverStripe\Core\Injector\Injector:
   Restruct\EduDex\Client:
     class: Restruct\EduDex\Integration\SilverStripe\SilverStripeClient

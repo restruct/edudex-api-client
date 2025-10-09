@@ -4,6 +4,7 @@ namespace Restruct\EduDex\Integration\SilverStripe\Extensions;
 
 use Restruct\EduDex\Client;
 use Restruct\EduDex\Exceptions\EduDexException;
+use SilverStripe\Core\Environment;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
@@ -79,7 +80,7 @@ class SiteConfigExtension extends DataExtension
      */
     protected function getConnectionStatusField(): LiteralField
     {
-        $token = $this->owner->EduDexBearerToken ?: getenv('EDUDEX_API_TOKEN');
+        $token = $this->owner->EduDexBearerToken ?: Environment::getEnv('EDUDEX_API_TOKEN');
         $baseUrl = $this->owner->EduDexApiBaseUrl ?: 'https://api.edudex.nl/data/v1/';
 
         if (empty($token)) {
@@ -114,7 +115,7 @@ class SiteConfigExtension extends DataExtension
      */
     public function getEduDexToken(): ?string
     {
-        return $this->owner->EduDexBearerToken ?: getenv('EDUDEX_API_TOKEN') ?: null;
+        return $this->owner->EduDexBearerToken ?: Environment::getEnv('EDUDEX_API_TOKEN') ?: null;
     }
 
     /**

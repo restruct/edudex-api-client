@@ -30,12 +30,11 @@ Name: app-edudex
 ---
 
 # SilverStripe Client configuration
+# Note: Bearer token cannot be set via Config for security.
+# Set via EDUDEX_API_TOKEN environment variable or pass to constructor.
 Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   # API base URL (default production URL)
   api_base_url: 'https://api.edudex.nl/data/v1/'
-
-  # Bearer token - use backticks for environment variables
-  bearer_token: '`EDUDEX_API_TOKEN`'
 
   # Request timeout in seconds
   timeout: 30
@@ -227,10 +226,13 @@ if ($client) {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `api_base_url` | string | `https://api.edudex.nl/data/v1/` | API base URL |
-| `bearer_token` | string | Environment variable | JWT bearer token |
 | `timeout` | int | 30 | Request timeout (seconds) |
 | `debug` | bool | false | Enable debug logging |
 | `cache_ttl` | int | 3600 | Cache TTL (seconds) |
+
+**Note:** The bearer token **cannot** be set via Config API for security reasons. It must be provided via:
+- `EDUDEX_API_TOKEN` environment variable (recommended), or
+- Constructor parameter when manually instantiating the client
 
 ### Accessing Config Values
 

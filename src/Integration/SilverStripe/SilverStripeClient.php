@@ -6,6 +6,7 @@ use Psr\Log\LoggerInterface;
 use Restruct\EduDex\Client;
 use Restruct\EduDex\Exceptions\AuthenticationException;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
 
 /**
@@ -28,14 +29,6 @@ class SilverStripeClient extends Client
      * @var string
      */
     private static string $api_base_url = 'https://api.edudex.nl/data/v1/';
-
-    /**
-     * API bearer token (can be set via config or environment variable)
-     *
-     * @config
-     * @var string
-     */
-    private static string $bearer_token = '';
 
     /**
      * Request timeout in seconds
@@ -66,6 +59,9 @@ class SilverStripeClient extends Client
      *
      * Reads configuration from SilverStripe Config API
      *
+     * Bearer token must be provided via constructor parameter or EDUDEX_API_TOKEN environment variable.
+     * It cannot be set via Config API for security reasons.
+     *
      * @param string|null $bearerToken Bearer token for authentication
      * @param string|null $baseUrl API base URL
      * @param array $config Additional HTTP client configuration
@@ -78,10 +74,9 @@ class SilverStripeClient extends Client
         array $config = [],
         ?LoggerInterface $logger = null
     ) {
-        // Resolve bearer token: parameter > SilverStripe config > environment
+        // Resolve bearer token: parameter > environment variable only
         $bearerToken = $bearerToken
-            ?? static::config()->get('bearer_token')
-            ?? getenv('EDUDEX_API_TOKEN')
+            ?? Environment::getEnv('EDUDEX_API_TOKEN')
             ?: null;
 
         // Resolve base URL: parameter > SilverStripe config > default
