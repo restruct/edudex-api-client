@@ -1,0 +1,14 @@
+---
+Name: silverstripe-edudex
+---
+
+# Add SiteConfig extension for CMS configuration
+SiteConfig:
+  extensions:
+    - EduDexSiteConfigExtension
+
+# Configure Injector to use SilverStripeClient when requesting base Client
+# For non-SilverStripe projects, use the base Restruct\EduDex\Client class
+Injector:
+  EduDexClient:
+    class: EduDexSilverStripeClient
