@@ -1,7 +1,7 @@
 {
     "name": "restruct/edudex-api-client",
     "description": "PHP client library for the EDU-DEX Data API. Framework-agnostic with optional SilverStripe integration.",
-    "type": "library",
+    "type": "silverstripe-module",
     "keywords": [
         "edudex",
         "api-client",
@@ -31,6 +31,9 @@
     "suggest": {
         "silverstripe/framework": "For SilverStripe integration (^3.7)",
         "monolog/monolog": "For enhanced logging support"
+    },
+    "extra"      : {
+        "installer-name": "edudex-api-client"
     },
     "minimum-stability": "stable",
     "prefer-stable": true
