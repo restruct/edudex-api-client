@@ -32,7 +32,7 @@
         "silverstripe/framework": "For SilverStripe integration (^3.7)",
         "monolog/monolog": "For enhanced logging support"
     },
-    "extra"      : {
+    "extra": {
         "installer-name": "edudex-api-client"
     },
     "minimum-stability": "stable",
