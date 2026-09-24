@@ -3,6 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue.svg)](https://php.net)
 
+*Maintained by [Restruct](https://github.com/restruct). If this module saves you time, you can
+[support ongoing maintenance](https://github.com/sponsors/restruct).*
+
 PHP client library for the [EDU-DEX Data API](https://api.edudex.nl/data/v1/). Framework-agnostic with optional SilverStripe integration.
 
 ## Features
@@ -295,16 +298,17 @@ See [docs/SILVERSTRIPE_INTEGRATION.md](docs/SILVERSTRIPE_INTEGRATION.md) for com
 - PSR-3 Logger interface
 
 **Optional:**
-- SilverStripe Framework ^5.0 (for SilverStripe integration)
+- SilverStripe Framework ^5.0 (for SilverStripe integration; `SiteConfigExtension` extends
+  `DataExtension`, which Silverstripe 6 removed, so the integration layer is Silverstripe 5 only)
 
 ## Testing
+
+There is no test suite yet: `phpunit.xml.dist` points at a `tests/` directory that does not exist, so
+`composer test` has nothing to run. The static analysis and code style scripts:
 
 ```bash
 # Install dev dependencies
 composer install
-
-# Run tests
-composer test
 
 # Run static analysis
 composer phpstan
