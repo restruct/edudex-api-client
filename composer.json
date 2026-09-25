@@ -17,10 +17,6 @@
         {
             "name": "Bart van Irsel/Webium",
             "role": "AI consultant/guru"
-        },
-        {
-            "name": "Claude (Anthropic)",
-            "role": "AI Co-Author"
         }
     ],
     "require": {

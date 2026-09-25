@@ -336,6 +336,5 @@ This library is open-sourced software licensed under the [MIT license](LICENSE).
 
 - **Michael van Schaik** (Restruct.nl) - development
 - **Bart van Irsel** (Webium) - AI consultant/guru
-- **Claude** (Anthropic) - AI co-author and code generation
 - EDU-DEX API by WebHare BV
 
