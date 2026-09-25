@@ -210,27 +210,32 @@ composer require silverstripe/framework:^5.0
 
 ### Configuration
 
-Add to `app/_config/edudex.yml`:
+The package ships its own `_config/edudex.yml`, so in a Silverstripe project two things are applied
+automatically, without any project config:
+
+- `SiteConfigExtension` is added to `SiteConfig` (an "EduDex" tab under Settings in the CMS; run
+  `dev/build` after installing).
+- The Injector maps `Restruct\EduDex\Client` to `SilverStripeClient`.
+
+Client settings are optional; override them in your own config, e.g. `app/_config/edudex.yml`:
 
 ```yaml
 ---
-Name: app-edudex
+Name: app-edudex-client
 ---
-
-# SilverStripe Client configuration (optional)
 Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   api_base_url: 'https://api.edudex.nl/data/v1/'
   timeout: 30
+```
 
-# Configure Injector
-SilverStripe\Core\Injector\Injector:
-  Restruct\EduDex\Client:
-    class: Restruct\EduDex\Integration\SilverStripe\SilverStripeClient
+To switch the CMS integration off, remove the extension in your project's `app/_config.php`. The
+package adds it as an unnamed list entry, which YAML config cannot unset, so this has to be PHP:
 
-# Add CMS integration
-SilverStripe\SiteConfig\SiteConfig:
-  extensions:
-    - Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension
+```php
+use Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension;
+use SilverStripe\SiteConfig\SiteConfig;
+
+SiteConfig::remove_extension(SiteConfigExtension::class);
 ```
 
 ### Usage in SilverStripe

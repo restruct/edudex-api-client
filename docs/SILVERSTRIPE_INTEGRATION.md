@@ -22,11 +22,15 @@ EDUDEX_API_TOKEN="your-jwt-bearer-token-here"
 
 ### 2. YML Configuration
 
-Create or edit `app/_config/edudex.yml`:
+The package's own `_config/edudex.yml` already adds `SiteConfigExtension` to `SiteConfig` and maps
+`Restruct\EduDex\Client` to `SilverStripeClient` in the Injector, so the last two blocks below are
+applied automatically and only shown for reference. To switch the CMS integration off, call
+`SiteConfig::remove_extension(SiteConfigExtension::class)` in your project's `app/_config.php` (see
+the README). Client settings can be overridden in e.g. `app/_config/edudex.yml`:
 
 ```yaml
 ---
-Name: app-edudex
+Name: app-edudex-client
 ---
 
 # SilverStripe Client configuration
@@ -45,12 +49,12 @@ Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   # Cache TTL for API responses (seconds, 0 to disable)
   cache_ttl: 3600
 
-# Configure Injector to use SilverStripeClient
+# Configure Injector to use SilverStripeClient (already applied by the package)
 SilverStripe\Core\Injector\Injector:
   Restruct\EduDex\Client:
     class: Restruct\EduDex\Integration\SilverStripe\SilverStripeClient
 
-# Add EduDex configuration to SiteConfig (optional CMS integration)
+# Add EduDex configuration to SiteConfig (optional CMS integration; already applied by the package)
 SilverStripe\SiteConfig\SiteConfig:
   extensions:
     - Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension
