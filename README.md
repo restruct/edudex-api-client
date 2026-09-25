@@ -337,6 +337,8 @@ composer cs-fix
 
 This library is open-sourced software licensed under the [MIT license](LICENSE).
 
+The MIT license covers this library's own code. The bundled `openapi-edudex-spec.json` is the EDU-DEX Data API specification, published by EDU-DEX; it is included for reference and code generation only, is not covered by the MIT license, and no separate license for it is stated by EDU-DEX. EDU-DEX is an open data standard for exchanging and publishing training course information; see https://www.edudex.nl for its terms of use.
+
 ## Credits
 
 - **Michael van Schaik** (Restruct.nl) - development
