@@ -3,6 +3,11 @@
 namespace Restruct\EduDex\Tests\SilverStripe;
 
 use Restruct\EduDex\Client;
+use Restruct\EduDex\Integration\SilverStripe\SilverStripeClient;
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Config\Config;
 use Restruct\EduDex\Http\GuzzleClient;
 use Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension;
 use SilverStripe\Core\Environment;
@@ -16,8 +21,8 @@ use SilverStripe\SiteConfig\SiteConfig;
 /**
  * SiteConfigExtension: schema, token/base URL resolution, getEduDexClient(), CMS fields
  *
- * The "token present" branch of the connection status field is not tested: it calls
- * the live API (issue #4 proposes replacing it with an explicit test button).
+ * The connection check itself is only exercised against a closed loopback port
+ * (127.0.0.1:1), never against the live API.
  *
  * Needs a booted Silverstripe 5 app with a database (CI runs it in a host project);
  * excluded from the standalone suite in phpunit.xml.dist. Written for PHPUnit 9.
@@ -134,5 +139,78 @@ class SiteConfigExtensionTest extends SapphireTest
         $status = $fields->fieldByName('Root.EduDex.EduDexStatus');
         $this->assertInstanceOf(LiteralField::class, $status);
         $this->assertStringContainsString('No bearer token configured', $status->getContent());
+    }
+
+    /**
+     * Base URL nothing listens on: a check fails fast and never leaves the machine
+     */
+    private const CLOSED_PORT_URL = 'http://127.0.0.1:1/';
+
+    /**
+     * Status field of the EduDex tab for an admin, with an optional request var set
+     *
+     * @param SiteConfig $config
+     * @param array $getVars
+     * @return LiteralField
+     */
+    private function statusField(SiteConfig $config, array $getVars = []): LiteralField
+    {
+        $this->logInWithPermission('ADMIN');
+
+        $controller = Controller::create();
+        $request = new HTTPRequest('GET', 'admin/settings', $getVars);
+        # pushCurrent() needs a session on the request
+        $request->setSession(new Session([]));
+        $controller->setRequest($request);
+        $controller->pushCurrent();
+        try {
+            $fields = $config->getCMSFields();
+        } finally {
+            $controller->popCurrent();
+        }
+
+        $status = $fields->fieldByName('Root.EduDex.EduDexStatus');
+        $this->assertInstanceOf(LiteralField::class, $status);
+        return $status;
+    }
+
+    /**
+     * Issue #4: opening Settings used to call the API every time
+     */
+    public function testStatusFieldDoesNotCallTheApiOnLoad(): void
+    {
+        $config = SiteConfig::create(['EduDexBearerToken' => 'db-token', 'EduDexApiBaseUrl' => self::CLOSED_PORT_URL]);
+
+        $content = $this->statusField($config)->getContent();
+
+        $this->assertStringNotContainsString('Connection failed', $content);
+        $this->assertStringNotContainsString('Connected successfully', $content);
+        $this->assertStringContainsString('edudexcheck=1', $content);
+    }
+
+    public function testStatusFieldRunsTheCheckWhenAskedFor(): void
+    {
+        $config = SiteConfig::create(['EduDexBearerToken' => 'db-token', 'EduDexApiBaseUrl' => self::CLOSED_PORT_URL]);
+
+        $content = $this->statusField($config, ['edudexcheck' => '1'])->getContent();
+
+        $this->assertStringContainsString('Connection failed', $content);
+    }
+
+    /**
+     * Issue #4: getEduDexClient() used "new Client", so SilverStripeClient config
+     * (timeout) and the Injector mapping did not apply
+     */
+    public function testGetEduDexClientHonoursSilverStripeClientConfig(): void
+    {
+        Config::modify()->set(SilverStripeClient::class, 'timeout', 7);
+        $config = SiteConfig::create(['EduDexBearerToken' => 'db-token']);
+
+        $client = $config->getEduDexClient();
+
+        $this->assertInstanceOf(SilverStripeClient::class, $client);
+        $this->assertSame(7, $client->getHttpClient()->getGuzzleClient()->getConfig('timeout'));
+        # The stored base URL still wins over the SilverStripeClient default
+        $this->assertSame('https://api.edudex.nl/data/v1', $client->getHttpClient()->getBaseUrl());
     }
 }
