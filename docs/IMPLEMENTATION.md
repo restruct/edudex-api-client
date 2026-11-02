@@ -108,7 +108,7 @@ ddev exec vendor/bin/sake dev/build flush=1
 Via CMS:
 - Go to Settings → EduDex tab
 - Enter bearer token
-- Check connection status
+- Click "Test connection" (opening the tab itself makes no API call)
 
 Via Code:
 ```php
@@ -238,7 +238,7 @@ Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   api_base_url: 'https://api.edudex.nl/data/v1/'
   timeout: 30
   debug: false
-  cache_ttl: 3600
+  # cache_ttl: deprecated since 1.2.0, without effect (nothing is cached)
 
 # Map base Client to SilverStripeClient via Injector
 SilverStripe\Core\Injector\Injector:

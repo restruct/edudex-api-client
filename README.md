@@ -81,7 +81,10 @@ $client = new Client();
 The token is taken from the argument, then `bearer_token` in the config array, then
 `EDUDEX_API_TOKEN`; the base URL from the argument, then `api_base_url`, then the default
 `https://api.edudex.nl/data/v1/`. The timeout defaults to 30 seconds. The config array is also
-passed to Guzzle, so other Guzzle client options work there too. Pass a PSR-3 logger as the last
+passed to Guzzle, so other Guzzle client options (`verify`, `proxy`, `connect_timeout`, `handler`, ...)
+work there too, except the package's own keys (`bearer_token`, `api_base_url`, `debug`, `cache_ttl`),
+which never reach Guzzle. A `headers` key adds to the default headers; it cannot remove the
+`Authorization` header or replace the bearer token. Pass a PSR-3 logger as the last
 argument of `new Client()` or `Client::fromConfig()` to log every request and response (debug
 level) and every failed request (error level).
 
@@ -261,12 +264,14 @@ automatically, without any project config:
 - The Injector maps `Restruct\EduDex\Client` to `SilverStripeClient`.
 
 The EduDex tab is shown to administrators only. It holds an API base URL and a bearer token, and
-shows a connection status: each time the tab is loaded it calls the API (`organizations()->list()`)
-with the configured token, or `EDUDEX_API_TOKEN`, and reports how many organizations it found or
-why it failed. The token and base URL stored there are used by the extension's own
-`getEduDexClient()`, `getEduDexToken()` and `getEduDexBaseUrl()` on `SiteConfig`. `SilverStripeClient`
-does not read them: it takes its token from the constructor argument or `EDUDEX_API_TOKEN`, and its
-base URL from the constructor argument or config.
+shows a connection status. Opening the tab does not call the API; its "Test connection" link reloads
+Settings with `?edudexcheck=1`, which calls `organizations()->list()` once with the configured token,
+or `EDUDEX_API_TOKEN`, and reports how many organizations it found or why it failed. The token and
+base URL stored there are used by the extension's own `getEduDexClient()`, `getEduDexToken()` and
+`getEduDexBaseUrl()` on `SiteConfig`. `getEduDexClient()` builds the client through the Injector, so
+it is a `SilverStripeClient` and its `timeout` and `debug` config apply. `SilverStripeClient` itself
+does not read the stored values: it takes its token from the constructor argument or
+`EDUDEX_API_TOKEN`, and its base URL from the constructor argument or config.
 
 Client settings are optional; override them in your own config, e.g. `app/_config/edudex.yml`:
 
@@ -279,9 +284,13 @@ Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   timeout: 30
 ```
 
-`SilverStripeClient` also has a `debug` setting (default `false`), which is passed to Guzzle as its
-`debug` request option, and a `cache_ttl` setting (default `3600`), which it only exposes through
-`getCacheTTL()`: the client itself caches nothing.
+`SilverStripeClient` also has a `debug` setting (default `false`). When it is on and no logger is
+passed to the constructor, every request and response is logged at debug level to the Silverstripe
+logger service (`Psr\Log\LoggerInterface`). It is never passed to Guzzle: before 1.2.0 it was, and
+Guzzle's own `debug` option prints the whole transfer, bearer token included, into the output.
+
+`cache_ttl` and `getCacheTTL()` are deprecated since 1.2.0 and will be removed in 2.0: the client has
+never cached anything, so the setting had no effect.
 
 To switch the CMS integration off, remove the extension in your project's `app/_config.php`. The
 package adds it as an unnamed list entry, which YAML config cannot unset, so this has to be PHP:
