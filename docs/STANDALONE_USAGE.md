@@ -364,8 +364,11 @@ The `Client` constructor and `fromConfig()` accept these options:
 | `bearer_token` | string | `EDUDEX_API_TOKEN` env | JWT bearer token |
 | `api_base_url` | string | `https://api.edudex.nl/data/v1/` | API base URL |
 | `timeout` | int | 30 | Request timeout (seconds) |
-| `debug` | bool | false | Enable debug mode |
-| `cache_ttl` | int | 3600 | Cache TTL (seconds) |
+| `debug` | bool | false | Readable through `getConfig('debug')`; never passed to Guzzle. Pass a PSR-3 logger to log requests |
+| `cache_ttl` | int | 3600 | Deprecated since 1.2.0, no effect (nothing is cached) |
+| `headers` | array | | Extra headers, added to the defaults; cannot replace the bearer token |
+
+Any other key is passed to Guzzle as a client option.
 
 Example:
 
@@ -374,8 +377,6 @@ $config = [
     'bearer_token' => 'your-token',
     'api_base_url' => 'https://api.edudex.nl/data/v1/',
     'timeout' => 60,
-    'debug' => true,
-    'cache_ttl' => 7200,
 ];
 
 $client = Client::fromConfig($config, $logger);

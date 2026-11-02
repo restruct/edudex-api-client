@@ -140,4 +140,20 @@ class SilverStripeClientTest extends SapphireTest
         $this->assertTrue($client->isDebugEnabled());
         $this->assertSame(60, $client->getCacheTTL());
     }
+
+    /**
+     * Issue #4: the "debug" setting used to be handed to Guzzle as its own "debug"
+     * option, which dumps the transfer (bearer token included) into the output
+     */
+    public function testDebugSettingNeverReachesGuzzle(): void
+    {
+        Config::modify()->set(SilverStripeClient::class, 'debug', true);
+
+        $client = new SilverStripeClient(null, null, $this->recordingConfig());
+        $client->organizations()->list();
+
+        $this->assertTrue($client->isDebugEnabled());
+        $this->assertArrayNotHasKey('debug', $this->history[0]['options']);
+        $this->assertArrayNotHasKey('cache_ttl', $this->history[0]['options']);
+    }
 }

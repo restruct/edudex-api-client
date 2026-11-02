@@ -4,13 +4,16 @@ namespace Restruct\EduDex\Integration\SilverStripe\Extensions;
 
 use Restruct\EduDex\Client;
 use Restruct\EduDex\Exceptions\EduDexException;
+use SilverStripe\Control\Controller;
 use SilverStripe\Core\Environment;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\Security\Permission;
+use SilverStripe\SiteConfig\SiteConfigLeftAndMain;
 
 /**
  * SiteConfig extension for EduDex API configuration
@@ -74,14 +77,22 @@ class SiteConfigExtension extends DataExtension
     }
 
     /**
+     * Request variable that asks the settings tab to run the connection check
+     */
+    public const CHECK_VAR = 'edudexcheck';
+
+    /**
      * Get connection status field
+     *
+     * Only calls the API when the request asks for it (?edudexcheck=1, the "Test connection"
+     * link). It used to call the API every time Settings was opened, on every tab, which
+     * slowed the screen by up to the request timeout whenever the API was slow (#4).
      *
      * @return LiteralField
      */
     protected function getConnectionStatusField(): LiteralField
     {
-        $token = $this->owner->EduDexBearerToken ?: Environment::getEnv('EDUDEX_API_TOKEN');
-        $baseUrl = $this->owner->EduDexApiBaseUrl ?: 'https://api.edudex.nl/data/v1/';
+        $token = $this->getEduDexToken();
 
         if (empty($token)) {
             return LiteralField::create(
@@ -90,9 +101,22 @@ class SiteConfigExtension extends DataExtension
             );
         }
 
+        if (!$this->isConnectionCheckRequested()) {
+            $link = Controller::join_links(SiteConfigLeftAndMain::singleton()->Link(), '?' . self::CHECK_VAR . '=1');
+
+            return LiteralField::create(
+                'EduDexStatus',
+                sprintf(
+                    '<div class="message notice">Connection not tested. <a href="%s">Test connection</a> '
+                    . '(reloads Settings and calls the EduDex API once).</div>',
+                    htmlspecialchars($link)
+                )
+            );
+        }
+
         try {
-            $client = new Client($token, $baseUrl);
-            $orgs = $client->organizations()->list();
+            # getEduDexClient() returns null only when there is no token, handled above
+            $orgs = $this->getEduDexClient()->organizations()->list();
 
             $message = sprintf(
                 '<div class="message good">✓ Connected successfully. Found %d organizations.</div>',
@@ -106,6 +130,20 @@ class SiteConfigExtension extends DataExtension
         }
 
         return LiteralField::create('EduDexStatus', $message);
+    }
+
+    /**
+     * Whether the current request asks for the connection check
+     *
+     * @return bool
+     */
+    protected function isConnectionCheckRequested(): bool
+    {
+        if (!Controller::has_curr()) {
+            return false;
+        }
+
+        return (bool) Controller::curr()->getRequest()->getVar(self::CHECK_VAR);
     }
 
     /**
@@ -142,7 +180,10 @@ class SiteConfigExtension extends DataExtension
         }
 
         try {
-            return new Client($token, $this->getEduDexBaseUrl());
+            // return new Client($token, $this->getEduDexBaseUrl());
+            # Through the Injector, so the Client -> SilverStripeClient mapping and its config
+            # (timeout, debug) apply; the stored token and base URL still win (#4)
+            return Injector::inst()->create(Client::class, $token, $this->getEduDexBaseUrl());
         } catch (EduDexException $e) {
             return null;
         }

@@ -46,8 +46,8 @@ Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   # Enable debug logging (logs all requests/responses)
   debug: false
 
-  # Cache TTL for API responses (seconds, 0 to disable)
-  cache_ttl: 3600
+  # Deprecated since 1.2.0 and without effect: the client caches nothing
+  # cache_ttl: 3600
 
 # Configure Injector to use SilverStripeClient (already applied by the package)
 SilverStripe\Core\Injector\Injector:
@@ -199,7 +199,7 @@ The `SiteConfigExtension` adds an "EduDex" tab to Settings in the CMS.
 
 - Configure API bearer token directly in CMS
 - Set custom API base URL
-- Test connection with real-time status
+- Test connection on demand (a "Test connection" link; opening the tab makes no API call)
 - Visual feedback for connection issues
 
 ### Accessing Configuration
@@ -231,8 +231,8 @@ if ($client) {
 |--------|------|---------|-------------|
 | `api_base_url` | string | `https://api.edudex.nl/data/v1/` | API base URL |
 | `timeout` | int | 30 | Request timeout (seconds) |
-| `debug` | bool | false | Enable debug logging |
-| `cache_ttl` | int | 3600 | Cache TTL (seconds) |
+| `debug` | bool | false | Log requests/responses to the Silverstripe logger (when no logger is passed) |
+| `cache_ttl` | int | 3600 | Deprecated since 1.2.0, no effect (nothing is cached) |
 
 **Note:** The bearer token **cannot** be set via Config API for security reasons. It must be provided via:
 - `EDUDEX_API_TOKEN` environment variable (recommended), or
@@ -250,8 +250,7 @@ if ($client->isDebugEnabled()) {
     // Debug logging active
 }
 
-// Get cache TTL
-$ttl = $client->getCacheTTL();
+// getCacheTTL() is deprecated since 1.2.0: nothing is cached
 ```
 
 ## Logging

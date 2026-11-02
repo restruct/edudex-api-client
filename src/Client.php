@@ -19,7 +19,7 @@ use Psr\Log\LoggerInterface;
  * Framework-agnostic - works with any PHP project
  *
  * @package Restruct\EduDex
- * @version 1.1.0
+ * @version 1.2.0
  * @see https://api.edudex.nl/data/v1/
  */
 class Client
