@@ -8,6 +8,8 @@ use Restruct\EduDex\Exceptions\AuthenticationException;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\Deprecation;
 
 /**
  * SilverStripe-specific EduDex API Client
@@ -41,6 +43,10 @@ class SilverStripeClient extends Client
     /**
      * Enable debug logging
      *
+     * When true and no logger is passed to the constructor, requests and responses are
+     * logged (at debug level) to the Silverstripe logger service. Never passed to Guzzle:
+     * Guzzle's own "debug" option would print the bearer token into the output (#4).
+     *
      * @config
      * @var bool
      */
@@ -49,6 +55,7 @@ class SilverStripeClient extends Client
     /**
      * Cache TTL for API responses (seconds)
      *
+     * @deprecated 1.2.0 Nothing has ever read this: the client caches nothing. Will be removed in 2.0.
      * @config
      * @var int
      */
@@ -93,6 +100,12 @@ class SilverStripeClient extends Client
 
         $config = array_merge($ssConfig, $config);
 
+        # debug: route the client's request/response logging to the Silverstripe logger,
+        # unless the caller brought its own logger
+        if ($logger === null && !empty($config['debug'])) {
+            $logger = Injector::inst()->get(LoggerInterface::class);
+        }
+
         // Call parent constructor
         parent::__construct($bearerToken, $baseUrl, $config, $logger);
     }
@@ -110,10 +123,13 @@ class SilverStripeClient extends Client
     /**
      * Get cache TTL setting
      *
+     * @deprecated 1.2.0 The client caches nothing, so this value has no effect. Will be removed in 2.0.
      * @return int
      */
     public function getCacheTTL(): int
     {
+        Deprecation::notice('1.2.0', 'cache_ttl has no effect: the EduDex client caches nothing. It will be removed in 2.0.');
+
         return $this->getConfig('cache_ttl', 3600);
     }
 }

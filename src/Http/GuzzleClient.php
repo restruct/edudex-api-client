@@ -76,7 +76,49 @@ class GuzzleClient implements ClientInterface
             ],
         ];
 
-        $this->client = new Client(array_merge($defaultConfig, $config));
+        // $this->client = new Client(array_merge($defaultConfig, $config));
+        # A shallow array_merge() handed every key to Guzzle and let a "headers" key replace
+        # the defaults wholesale, dropping the Authorization header (#4)
+        $headers = self::mergeHeaders($defaultConfig['headers'], $config['headers'] ?? []);
+        $guzzleConfig = array_diff_key($config, array_flip(self::PACKAGE_CONFIG_KEYS));
+        unset($guzzleConfig['headers']);
+
+        $this->client = new Client(array_merge($defaultConfig, $guzzleConfig, ['headers' => $headers]));
+    }
+
+    /**
+     * Config keys that configure this package and must never reach Guzzle
+     *
+     * "debug" above all: Guzzle's own "debug" option dumps the whole transfer, the
+     * Authorization header included, to STDOUT or php://output (#4)
+     *
+     * @var string[]
+     */
+    protected const PACKAGE_CONFIG_KEYS = ['debug', 'cache_ttl', 'bearer_token', 'api_base_url'];
+
+    /**
+     * Merge configured headers over the defaults, case-insensitively, keeping the bearer token
+     *
+     * @param array $defaults Default headers, including Authorization
+     * @param array $extra Headers from config
+     * @return array
+     */
+    protected static function mergeHeaders(array $defaults, array $extra): array
+    {
+        foreach ($extra as $name => $value) {
+            # The bearer token is what authenticates this client: config cannot replace it
+            if (strcasecmp((string) $name, 'Authorization') === 0) {
+                continue;
+            }
+            foreach (array_keys($defaults) as $existing) {
+                if (strcasecmp((string) $existing, (string) $name) === 0) {
+                    unset($defaults[$existing]);
+                }
+            }
+            $defaults[$name] = $value;
+        }
+
+        return $defaults;
     }
 
     /**
