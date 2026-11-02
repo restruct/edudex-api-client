@@ -13,6 +13,8 @@
     <testsuites>
         <testsuite name="EduDex API Client Test Suite">
             <directory>tests</directory>
+            <!-- Needs a booted Silverstripe app; CI runs it in an SS host project -->
+            <exclude>tests/SilverStripe</exclude>
         </testsuite>
     </testsuites>
 
@@ -29,10 +31,8 @@
         <env name="EDUDEX_API_TOKEN" value="test-token-placeholder"/>
     </php>
 
-    <coverage processUncoveredFiles="true">
-        <report>
-            <html outputDirectory="coverage"/>
-            <text outputFile="php://stdout" showUncoveredFiles="false"/>
-        </report>
-    </coverage>
+    <!-- The PHPUnit 9 <coverage processUncoveredFiles> block was removed: PHPUnit 10+ rejects
+         it as invalid config, and it asked for a coverage report on every run, which warns
+         whenever no coverage driver is loaded. Ask for coverage explicitly instead:
+         pass the coverage-html option on the command line (needs Xdebug or PCOV). -->
 </phpunit>

@@ -369,13 +369,26 @@ composer require restruct/edudex-api-client
 
 ### Testing
 
-There is no test suite yet: `phpunit.xml.dist` points at a `tests/` directory that does not exist, so
-`composer test` has nothing to run. The static analysis and code style scripts:
+The PHPUnit suite in `tests/` drives the real `Client` and `GuzzleClient` against a Guzzle
+`MockHandler`, so it makes no network calls and needs no API token. Every request a test sends is
+also checked against the bundled `openapi-edudex-spec.json`: the operation (method and path), its
+query parameters and the top-level shape of the JSON body.
 
 ```bash
 # Install dev dependencies
 composer install
 
+# Run the standalone suite
+composer test
+```
+
+`tests/SilverStripe/` needs a booted Silverstripe 5 app and is excluded from the standalone run. CI
+(`.github/workflows/ci.yml`) runs it in a throwaway Silverstripe host project, next to the standalone
+suite on every PHP version `composer.json` allows.
+
+The static analysis and code style scripts:
+
+```bash
 # Run static analysis
 composer phpstan
 
