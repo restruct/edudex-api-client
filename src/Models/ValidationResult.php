@@ -21,12 +21,34 @@ class ValidationResult extends Model
     public array $messages = [];
 
     /**
+     * The API's verdict ("validates" in the spec's validations_response), null if not sent
+     *
+     * @var bool|null
+     */
+    public ?bool $validates = null;
+
+    /**
+     * @inheritDoc
+     */
+    protected function fill(array $data): void
+    {
+        # The spec sends the messages as "validationMessages"; reading only "messages"
+        # left them all out, so every result came out valid (#3)
+        if (!isset($data['messages']) && isset($data['validationMessages'])) {
+            $data['messages'] = $data['validationMessages'];
+        }
+
+        parent::fill($data);
+    }
+
+    /**
      * @inheritDoc
      */
     protected function castProperty(string $key, mixed $value): mixed
     {
         return match ($key) {
             'messages' => $this->castToValidationMessages($value),
+            'validates' => $value === null ? null : $this->castToBool($value),
             default => $value,
         };
     }
@@ -88,10 +110,11 @@ class ValidationResult extends Model
      */
     public function getErrors(): array
     {
-        return array_filter(
+        # array_values(): a list, not the positions the messages had in the full set
+        return array_values(array_filter(
             $this->messages,
             fn($msg) => $msg->isError()
-        );
+        ));
     }
 
     /**
@@ -101,10 +124,11 @@ class ValidationResult extends Model
      */
     public function getWarnings(): array
     {
-        return array_filter(
+        # array_values(): a list, not the positions the messages had in the full set
+        return array_values(array_filter(
             $this->messages,
             fn($msg) => $msg->isWarning()
-        );
+        ));
     }
 
     /**
@@ -114,10 +138,11 @@ class ValidationResult extends Model
      */
     public function getInfo(): array
     {
-        return array_filter(
+        # array_values(): a list, not the positions the messages had in the full set
+        return array_values(array_filter(
             $this->messages,
             fn($msg) => $msg->isInfo()
-        );
+        ));
     }
 
     /**
@@ -127,6 +152,11 @@ class ValidationResult extends Model
      */
     public function isValid(): bool
     {
+        # An explicit "validates: false" from the API wins, even without error messages
+        if ($this->validates === false) {
+            return false;
+        }
+
         return !$this->hasErrors();
     }
 
