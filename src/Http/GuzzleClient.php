@@ -265,9 +265,10 @@ class GuzzleClient implements ClientInterface
             $statusCode === 403 => AuthenticationException::forbidden($message),
 
             // Validation errors
-            $statusCode === 400 && isset($data['messages']) => new ValidationException(
+            # "validationMessages" is what the spec's 400 body (put_badrequest) carries (#3)
+            $statusCode === 400 && (isset($data['messages']) || isset($data['validationMessages'])) => new ValidationException(
                 $message,
-                $data['messages'],
+                $data['messages'] ?? $data['validationMessages'],
                 $statusCode
             ),
 

@@ -144,9 +144,20 @@ $client->suppliers()->upsertProgram('supplier-id', 'program-id', 'client-id', $p
 pass `'public'` as the client id for the public catalog. (Before 1.1.0 they dropped the client id and
 called a path the spec defines for GET only, [#1](https://github.com/restruct/edudex-api-client/issues/1).)
 
-> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** the API answers a
-> program PUT with a status object (`status`, `validationMessages`, `lastChange`), not the program,
-> so the `Program` that `upsertProgram()` returns carries none of the program fields.
+The API answers a program PUT with a status object, not the program, so `upsertProgram()` returns
+the program as submitted (ids plus your data). To get the status (`ok` or `unchanged`), its
+`validationMessages` and `lastChange`, call `upsertProgramWithStatus()` with the same arguments. A
+rejected program (HTTP 400 with `validationMessages`) throws a `ValidationException`.
+
+`getProgram()` fetches the program through `POST /programs/bulk`, the only place the spec returns a
+program's data, and throws an `ApiException` with the API's error if that program cannot be fetched.
+`listProgramClients()` lists the clients a program is published for; `listPrograms()` filters on its
+optional client id after fetching. (Before 1.3.0, `getProgram()` read the client list into an empty
+`Program`, and `listPrograms()`/`listDiscounts()` always returned empty arrays,
+[#3](https://github.com/restruct/edudex-api-client/issues/3).)
+
+> **Checked against the spec only:** these response shapes follow the bundled
+> `openapi-edudex-spec.json` and are covered by tests against it, not against the live API.
 
 ### Validating data
 
@@ -172,11 +183,13 @@ if ($result->isValid()) {
 }
 ```
 
-> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** per the bundled
-> spec, the validation response carries `validates` and `validationMessages` (with `level`), while
-> `ValidationResult` reads `messages` (with `severity`). Against a spec-shaped response
-> `isValid()` is therefore always `true`. Until this is fixed, read the raw response instead:
-> `$client->getHttpClient()->post('validations/programs', ['data' => $programData])['validates']`.
+`isValid()` follows the API's `validates` verdict, and is otherwise true when there are no errors.
+Messages come from the response's `validationMessages`: `level` becomes the severity, `ruleName`
+the `code`, and `forClient` sits in `context`. Before 1.3.0 these were not read, so `isValid()` was
+always `true` ([#3](https://github.com/restruct/edudex-api-client/issues/3)).
+
+> **Checked against the spec only:** the response shape follows the bundled
+> `openapi-edudex-spec.json`, not a recorded live response.
 
 `validateInstitute()` and `validateDiscounts()` work the same way. A `ValidationResult` also has
 `getWarnings()`, `getInfo()`, `getErrorCount()`/`getWarningCount()` and
@@ -205,10 +218,14 @@ echo "Failed: " . count($failed) . " programs\n";
 `$viewDiscountsForOrgUnitId` (sent as `viewDiscountsFor`, to apply that client's discounts). Before
 1.1.0 neither was sent ([#1](https://github.com/restruct/edudex-api-client/issues/1)).
 
-> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** per the bundled
-> spec, the bulk response lists every program under `programs`, each with `data` or `error`;
-> `getSuccessful()` and `getFailed()` read `successful`/`failed` keys and return empty arrays for
-> that shape. Read `$response['programs']` directly until this is fixed.
+The response lists every requested program under `programs`, each with `data` or an `error`.
+`getSuccessful()` builds a `Program` from each item with data (the ids, the program fields, and the
+whole `data` as `programData`); `getFailed()` returns the items with an error. Before 1.3.0 both
+read keys the spec does not have and returned empty arrays
+([#3](https://github.com/restruct/edudex-api-client/issues/3)).
+
+> **Checked against the spec only:** the bulk response shape follows the bundled
+> `openapi-edudex-spec.json`, not a recorded live response.
 
 ### Error handling
 
@@ -354,7 +371,12 @@ composer require restruct/edudex-api-client
 #### Endpoints
 
 - **Organizations** (`$client->organizations()`): organizations, static and dynamic catalogs,
-  catalog programs, webhooks
+  their programs and changes (`listStaticCatalogPrograms()`, `getStaticCatalogChanges()` and the
+  dynamic counterparts), bulk add/remove of static catalog programs, dynamic catalog suppliers
+  (`addSupplierToDynamicCatalog()` with a `selection` of `all` or `onlyincompanyordiscount`,
+  `listDynamicCatalogSuppliers()`, `getDynamicCatalogSupplier()`), webhooks.
+  `listCatalogs()` is deprecated: the spec has no such path, so it now combines the static and
+  dynamic lists.
 - **Suppliers** (`$client->suppliers()`): suppliers, metadata, programs, discounts
 - **Accreditors** (`$client->accreditors()`): accreditors and their accreditations
 - **Programs** (`$client->programs()`): bulk program retrieval
@@ -397,6 +419,9 @@ The PHPUnit suite in `tests/` drives the real `Client` and `GuzzleClient` agains
 `MockHandler`, so it makes no network calls and needs no API token. Every request a test sends is
 also checked against the bundled `openapi-edudex-spec.json`: the operation (method and path), its
 query parameters and the top-level shape of the JSON body.
+
+The suite has never been run against the live API. Request and response shapes are therefore
+confirmed against the bundled spec only; if the live API turns out to differ, please open an issue.
 
 ```bash
 # Install dev dependencies

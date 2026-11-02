@@ -328,4 +328,29 @@ class GuzzleClientTest extends TestCase
         $this->assertSame('https://api.example.test/data/v1', $http->getBaseUrl());
         $this->assertInstanceOf(\GuzzleHttp\Client::class, $http->getGuzzleClient());
     }
+
+    /**
+     * Issue #3: the spec's 400 body (put_badrequest) carries "validationMessages" with "level"
+     */
+    public function testBadRequestWithSpecValidationMessagesMapsToValidationExceptionIssue3(): void
+    {
+        $body = json_encode([
+            'status' => 400,
+            'error' => 'Validation failed',
+            'validationMessages' => [
+                ['level' => 'error', 'message' => 'Title missing', 'ruleName' => 'r1', 'forClient' => null],
+                ['level' => 'warning', 'message' => 'Short description', 'ruleName' => 'r2', 'forClient' => null],
+            ],
+        ]);
+        $http = $this->http([new Response(400, [], $body)]);
+
+        try {
+            $http->put('things/1', []);
+            $this->fail('Expected a ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame('Validation failed', $e->getMessage());
+            $this->assertSame(['Title missing'], $e->getErrorMessages());
+            $this->assertSame(['Short description'], $e->getWarningMessages());
+        }
+    }
 }

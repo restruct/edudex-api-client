@@ -36,7 +36,8 @@ class ValidationException extends EduDexException
 
         // Separate errors and warnings
         foreach ($messages as $msg) {
-            if (($msg['severity'] ?? 'error') === 'error') {
+            # "level" is the spec's name for it (validationMessages, #3)
+            if (($msg['severity'] ?? $msg['level'] ?? 'error') === 'error') {
                 $this->errors[] = $msg;
             } else {
                 $this->warnings[] = $msg;

@@ -4,6 +4,56 @@ All notable changes to this package. Versions follow [semantic versioning](https
 Entries before 1.1.0 were not recorded here; see the
 [GitHub releases and tags](https://github.com/restruct/edudex-api-client/tags).
 
+## 1.3.0 - 2026-11-02
+
+Fixes [#3](https://github.com/restruct/edudex-api-client/issues/3): requests and responses that
+disagreed with the bundled OpenAPI spec. Every change below is confirmed against that spec and its
+tests only, **not against the live API**. Existing signatures keep working (two methods gain an
+optional argument); minor because of the new methods and the changed behaviour.
+
+### Fixed
+
+- `ValidationResult` reads the spec's `validates` and `validationMessages` (`level`, `ruleName`,
+  `forClient`). Before, a spec-shaped response hydrated with no messages, so `isValid()` was always
+  `true` and invalid data passed the "validate, then upsert" flow. `isValid()` now also honours
+  `validates: false` without messages. `getErrors()`, `getWarnings()` and `getInfo()` return lists
+  (no gaps in the keys).
+- A 400 whose body carries `validationMessages` (the spec's `put_badrequest`) throws a
+  `ValidationException`; `ValidationException` reads `level` as well as `severity`.
+- `Programs::getSuccessful()` / `getFailed()` read the spec's `programs` list (each item with `data`
+  or `error`) and build each `Program` from the ids and `data`. The old keys are still read as a
+  fallback.
+- `Suppliers::listPrograms()` and `listDiscounts()` read the spec's `items` key (they always
+  returned empty arrays). `listPrograms()` applies its client id filter itself instead of sending a
+  query parameter the spec does not define.
+- `Suppliers::getProgram()` fetches through `POST /programs/bulk` and returns that program; it
+  throws an `ApiException` with the API's error when the program cannot be fetched. It used to GET
+  the client list of the program and hydrate it into an empty `Program`.
+- `Suppliers::upsertProgram()` returns the program as submitted, with its ids. It used to hydrate
+  the API's status response into a `Program` whose typed properties were unset, so reading them
+  threw an `Error`.
+- `Organizations::bulkAddPrograms()` / `bulkRemovePrograms()` send a bare array of
+  `{supplierId, programId}`, as the spec defines, instead of `{"programs": [...]}`; other keys,
+  such as the `clientId` the old docblock asked for, are dropped.
+- `Organizations::addSupplierToDynamicCatalog()` sends the required `selection` (new optional
+  argument, default `all`); `testWebhook()` sends the required `event` (new optional argument,
+  default `catalog`).
+
+### Added
+
+- `Suppliers::upsertProgramWithStatus()`: the API's status for a program PUT (`status`,
+  `validationMessages`, `lastChange`).
+- `Suppliers::listProgramClients()`: the clients a program is published for.
+- `Organizations::listStaticCatalogPrograms()`, `getStaticCatalogChanges()`,
+  `listDynamicCatalogPrograms()`, `getDynamicCatalogChanges()`, `listDynamicCatalogSuppliers()`,
+  `getDynamicCatalogSupplier()`.
+- `Programs::hydrateBulkItem()`.
+
+### Deprecated
+
+- `Organizations::listCatalogs()`: the spec has no `/organizations/{orgUnitId}/catalogs`. It now
+  combines `listStaticCatalogs` and `listDynamicCatalogs` raw results in two requests.
+
 ## 1.2.0 - 2026-11-02
 
 Fixes [#4](https://github.com/restruct/edudex-api-client/issues/4). Public signatures are
@@ -58,6 +108,6 @@ unchanged; minor because behaviour changes and a setting is deprecated.
 
 - Several response shapes and request bodies disagree with the bundled spec; most visibly,
   `ValidationResult::isValid()` is always `true` for a spec-shaped validation response
-  ([#3](https://github.com/restruct/edudex-api-client/issues/3)).
+  ([#3](https://github.com/restruct/edudex-api-client/issues/3)). Fixed in 1.3.0.
 - Config handling: `debug` is passed to Guzzle as is, the settings tab calls the API on every load,
   `cache_ttl` is unused ([#4](https://github.com/restruct/edudex-api-client/issues/4)). Fixed in 1.2.0.

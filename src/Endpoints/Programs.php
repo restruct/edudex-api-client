@@ -19,7 +19,7 @@ class Programs extends BaseEndpoint
      * @param array $programs Array of program identifiers: [['orgUnitId' => '...', 'programId' => '...', 'clientId' => '...'], ...]
      * @param string|null $viewerOrgUnitId View programs as this organization (sent as "viewer"; the API requires a special token for it)
      * @param string|null $viewDiscountsForOrgUnitId Apply discounts for this client (sent as "viewDiscountsFor")
-     * @return array Response with 'successful' and 'failed' arrays
+     * @return array Response with a "programs" list; each item has "data" or "error" (see getSuccessful()/getFailed())
      */
     public function bulk(
         array $programs,
@@ -42,23 +42,67 @@ class Programs extends BaseEndpoint
     /**
      * Get successful programs from bulk response
      *
+     * The spec's response lists every requested program under "programs", each with
+     * either "data" or an "error". The old "successful" key is still read as a fallback.
+     *
      * @param array $bulkResponse Response from bulk() method
      * @return array<Program>
      */
     public function getSuccessful(array $bulkResponse): array
     {
-        $items = $bulkResponse['successful'] ?? [];
-        return $this->hydrateModels(Program::class, $items);
+        if (!isset($bulkResponse['programs'])) {
+            $items = $bulkResponse['successful'] ?? [];
+            return $this->hydrateModels(Program::class, $items);
+        }
+
+        $programs = [];
+        foreach ($bulkResponse['programs'] as $item) {
+            if (($item['error'] ?? null) === null && is_array($item['data'] ?? null)) {
+                $programs[] = static::hydrateBulkItem($item);
+            }
+        }
+
+        return $programs;
     }
 
     /**
      * Get failed program identifiers from bulk response
      *
      * @param array $bulkResponse Response from bulk() method
-     * @return array Array of failed program info with error messages
+     * @return array Array of failed program info with error messages (orgUnitId, programId, clientId, error)
      */
     public function getFailed(array $bulkResponse): array
     {
-        return $bulkResponse['failed'] ?? [];
+        if (!isset($bulkResponse['programs'])) {
+            return $bulkResponse['failed'] ?? [];
+        }
+
+        return array_values(array_filter(
+            $bulkResponse['programs'],
+            fn($item) => ($item['error'] ?? null) !== null
+        ));
+    }
+
+    /**
+     * Build a Program from one successful item of a bulk response
+     *
+     * The program fields (format, editor, lastEdited, ...) come from "data", which is
+     * also kept whole as programData; the identifiers come from the item itself.
+     *
+     * @param array $item
+     * @return Program
+     */
+    public static function hydrateBulkItem(array $item): Program
+    {
+        $data = $item['data'] ?? [];
+
+        # Missing identifiers are left out rather than set to null: the properties are typed string
+        $ids = array_filter([
+            'orgUnitId' => $item['orgUnitId'] ?? null,
+            'programId' => $item['programId'] ?? null,
+            'clientId' => $item['clientId'] ?? null,
+        ], fn($value) => $value !== null);
+
+        return Program::fromArray(array_merge($data, $ids, ['programData' => $data]));
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Restruct\EduDex\Tests\Endpoints;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Restruct\EduDex\Exceptions\EduDexException;
 use Restruct\EduDex\Models\DynamicCatalog;
 use Restruct\EduDex\Models\Organization;
@@ -12,10 +14,8 @@ use Restruct\EduDex\Tests\ApiTestCase;
 /**
  * Organizations endpoint: request building and response handling per the bundled spec
  *
- * Not covered here on purpose, because the current code disagrees with the spec
- * (see https://github.com/restruct/edudex-api-client/issues/3): listCatalogs(),
- * bulkAddPrograms(), bulkRemovePrograms(), addSupplierToDynamicCatalog(), testWebhook().
- * Their tests arrive with the fixes, failing first.
+ * Tests named "...Issue3" are regressions for spec drift fixed under
+ * https://github.com/restruct/edudex-api-client/issues/3
  */
 class OrganizationsTest extends ApiTestCase
 {
@@ -316,5 +316,157 @@ class OrganizationsTest extends ApiTestCase
         $client->organizations()->deleteWebhook('org-1', 'hook-1');
 
         $this->assertSentRequest('DELETE', 'organizations/org-1/webhooks/hook-1');
+    }
+
+    /**
+     * Issue #3: the spec has no /organizations/{orgUnitId}/catalogs; the deprecated
+     * listCatalogs() now combines the static and dynamic catalog lists
+     */
+    public function testListCatalogsCombinesStaticAndDynamicListsIssue3(): void
+    {
+        $static = self::catalog(['catalogId' => '11111111-1111-1111-1111-111111111111']);
+        $dynamic = self::catalog(['catalogId' => '22222222-2222-2222-2222-222222222222', 'regionFilter' => '1000']);
+        $client = $this->makeClient([
+            self::json(['catalogs' => [$static]]),
+            self::json(['catalogs' => [$dynamic]]),
+        ]);
+
+        $catalogs = $client->organizations()->listCatalogs('org-1');
+
+        $this->assertCount(2, $this->history);
+        $this->assertSame('/data/v1/organizations/org-1/staticcatalogs', $this->history[0]['request']->getUri()->getPath());
+        $this->assertSame('/data/v1/organizations/org-1/dynamiccatalogs', $this->history[1]['request']->getUri()->getPath());
+        foreach ($this->history as $transaction) {
+            $this->assertConformsToSpec($transaction['request']);
+        }
+        $this->assertSame([$static, $dynamic], $catalogs);
+    }
+
+    /**
+     * Issue #3: the spec's body is a bare array of {supplierId, programId}, closed to
+     * other fields; the client used to wrap it in {"programs": [...]}
+     */
+    public function testBulkAddProgramsSendsABareArrayIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['added' => []])]);
+
+        $result = $client->organizations()->bulkAddPrograms('org-1', self::CATALOG_ID, [
+            ['supplierId' => 'sup-1', 'programId' => 'prog-1'],
+            # clientId was asked for by the old docblock; the spec rejects it, so it is dropped
+            ['supplierId' => 'sup-2', 'programId' => 'prog-2', 'clientId' => 'client-1'],
+        ]);
+
+        $this->assertSentRequest('POST', 'organizations/org-1/staticcatalogs/' . self::CATALOG_ID . '/programs/bulkadd', [], [
+            ['supplierId' => 'sup-1', 'programId' => 'prog-1'],
+            ['supplierId' => 'sup-2', 'programId' => 'prog-2'],
+        ]);
+        $this->assertSame(['added' => []], $result);
+    }
+
+    public function testBulkRemoveProgramsSendsABareArrayIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['removed' => []])]);
+
+        $client->organizations()->bulkRemovePrograms('org-1', self::CATALOG_ID, [
+            ['supplierId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'client-1'],
+        ]);
+
+        $this->assertSentRequest('POST', 'organizations/org-1/staticcatalogs/' . self::CATALOG_ID . '/programs/bulkremove', [], [
+            ['supplierId' => 'sup-1', 'programId' => 'prog-1'],
+        ]);
+    }
+
+    /**
+     * Issue #3: the spec requires {"selection": "all"|"onlyincompanyordiscount"}
+     */
+    public function testAddSupplierToDynamicCatalogSendsSelectionAllByDefaultIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['supplierId' => 'sup-1', 'selection' => 'all'])]);
+
+        $result = $client->organizations()->addSupplierToDynamicCatalog('org-1', self::CATALOG_ID, 'sup-1');
+
+        $this->assertSentRequest('PUT', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/suppliers/sup-1', [], ['selection' => 'all']);
+        $this->assertSame(['supplierId' => 'sup-1', 'selection' => 'all'], $result);
+    }
+
+    public function testAddSupplierToDynamicCatalogWithSelectionIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['supplierId' => 'sup-1', 'selection' => 'onlyincompanyordiscount'])]);
+
+        $client->organizations()->addSupplierToDynamicCatalog('org-1', self::CATALOG_ID, 'sup-1', 'onlyincompanyordiscount');
+
+        $this->assertSentRequest('PUT', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/suppliers/sup-1', [], ['selection' => 'onlyincompanyordiscount']);
+    }
+
+    /**
+     * Issue #3: the spec requires {"event": ...}; "catalog" is its only value
+     */
+    public function testTestWebhookSendsTheCatalogEventByDefaultIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['status' => 200])]);
+
+        $client->organizations()->testWebhook('org-1', 'hook-1');
+
+        $this->assertSentRequest('POST', 'organizations/org-1/webhooks/hook-1/test', [], ['event' => 'catalog']);
+    }
+
+    public function testListStaticCatalogProgramsIssue3(): void
+    {
+        $items = [['status' => 'active', 'supplierId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => null, 'lastChange' => '2024-01-01T00:00:00Z']];
+        $client = $this->makeClient([self::json($items)]);
+
+        $this->assertSame($items, $client->organizations()->listStaticCatalogPrograms('org-1', self::CATALOG_ID));
+        $this->assertSentRequest('GET', 'organizations/org-1/staticcatalogs/' . self::CATALOG_ID . '/programs');
+    }
+
+    public function testListDynamicCatalogProgramsIssue3(): void
+    {
+        $client = $this->makeClient([self::json([])]);
+
+        $this->assertSame([], $client->organizations()->listDynamicCatalogPrograms('org-1', self::CATALOG_ID));
+        $this->assertSentRequest('GET', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/programs');
+    }
+
+    public function testGetStaticCatalogChangesSendsChangesSinceInUtcIssue3(): void
+    {
+        $items = [['status' => 'removed', 'supplierId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'c', 'lastChange' => '2024-01-02T00:00:00Z']];
+        $client = $this->makeClient([self::json($items)]);
+        $since = new DateTimeImmutable('2024-01-01 02:02:03', new DateTimeZone('Europe/Amsterdam'));
+
+        $this->assertSame($items, $client->organizations()->getStaticCatalogChanges('org-1', self::CATALOG_ID, $since));
+        $this->assertSentRequest('GET', 'organizations/org-1/staticcatalogs/' . self::CATALOG_ID . '/changes', [
+            'changesSince' => '2024-01-01T01:02:03Z',
+        ]);
+    }
+
+    public function testGetDynamicCatalogChangesAcceptsAStringIssue3(): void
+    {
+        $client = $this->makeClient([self::json([])]);
+
+        $client->organizations()->getDynamicCatalogChanges('org-1', self::CATALOG_ID, '2024-01-01T01:02:03Z');
+
+        $this->assertSentRequest('GET', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/changes', [
+            'changesSince' => '2024-01-01T01:02:03Z',
+        ]);
+    }
+
+    public function testListDynamicCatalogSuppliersIssue3(): void
+    {
+        $suppliers = [['supplierId' => 'sup-1', 'selection' => 'all']];
+        $client = $this->makeClient([self::json(['suppliers' => $suppliers])]);
+
+        $this->assertSame($suppliers, $client->organizations()->listDynamicCatalogSuppliers('org-1', self::CATALOG_ID));
+        $this->assertSentRequest('GET', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/suppliers');
+    }
+
+    public function testGetDynamicCatalogSupplierIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['supplierId' => 'sup-1', 'selection' => 'all'])]);
+
+        $this->assertSame(
+            ['supplierId' => 'sup-1', 'selection' => 'all'],
+            $client->organizations()->getDynamicCatalogSupplier('org-1', self::CATALOG_ID, 'sup-1')
+        );
+        $this->assertSentRequest('GET', 'organizations/org-1/dynamiccatalogs/' . self::CATALOG_ID . '/suppliers/sup-1');
     }
 }

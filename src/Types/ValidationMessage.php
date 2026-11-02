@@ -84,12 +84,19 @@ class ValidationMessage
      */
     public static function fromArray(array $data): static
     {
+        # The spec's validationMessages use "level" and "ruleName"; "severity" and "code"
+        # are kept as the first choice for anything already built on them (#3)
+        $context = $data['context'] ?? [];
+        if (array_key_exists('forClient', $data) && !isset($context['forClient'])) {
+            $context['forClient'] = $data['forClient'];
+        }
+
         return new static(
             $data['message'] ?? '',
-            $data['severity'] ?? self::SEVERITY_ERROR,
+            $data['severity'] ?? $data['level'] ?? self::SEVERITY_ERROR,
             $data['contextPath'] ?? null,
-            $data['code'] ?? null,
-            $data['context'] ?? []
+            $data['code'] ?? $data['ruleName'] ?? null,
+            $context
         );
     }
 

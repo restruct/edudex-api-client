@@ -2,18 +2,18 @@
 
 namespace Restruct\EduDex\Tests\Endpoints;
 
+use Restruct\EduDex\Exceptions\ApiException;
 use Restruct\EduDex\Exceptions\EduDexException;
+use Restruct\EduDex\Exceptions\ValidationException;
+use Restruct\EduDex\Models\Program;
 use Restruct\EduDex\Models\Supplier;
 use Restruct\EduDex\Tests\ApiTestCase;
 
 /**
  * Suppliers endpoint: request building and response handling per the bundled spec
  *
- * Not covered here on purpose, because the current code disagrees with the spec:
- * getProgram(), listPrograms() with a client id, the response side of
- * listPrograms()/listDiscounts() and of upsertProgram()
- * (https://github.com/restruct/edudex-api-client/issues/3).
- * Their tests arrive with the fixes, failing first.
+ * Tests named "...Issue3" are regressions for spec drift fixed under
+ * https://github.com/restruct/edudex-api-client/issues/3
  */
 class SuppliersTest extends ApiTestCase
 {
@@ -77,7 +77,6 @@ class SuppliersTest extends ApiTestCase
 
     public function testListProgramsRequestWithoutClientFilter(): void
     {
-        # Request side only: the response key is covered with issue #3
         $client = $this->makeClient([self::json(['items' => []])]);
 
         $client->suppliers()->listPrograms('sup-1');
@@ -87,7 +86,6 @@ class SuppliersTest extends ApiTestCase
 
     public function testListDiscountsRequest(): void
     {
-        # Request side only: the response key is covered with issue #3
         $client = $this->makeClient([self::json(['items' => []])]);
 
         $client->suppliers()->listDiscounts('sup-1');
@@ -215,6 +213,152 @@ class SuppliersTest extends ApiTestCase
             $client->suppliers()->deleteProgram('sup-1', 'prog-1', '');
         } finally {
             $this->assertCount(0, $this->history);
+        }
+    }
+
+    /**
+     * Program list items as the spec's suppliers_programs_list_response has them
+     *
+     * @return array
+     */
+    private static function programItems(): array
+    {
+        return [
+            ['orgUnitId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'public', 'lastChange' => '2024-01-01T00:00:00Z'],
+            ['orgUnitId' => 'sup-1', 'programId' => 'prog-2', 'clientId' => 'client-1', 'lastChange' => '2024-01-02T00:00:00Z'],
+        ];
+    }
+
+    /**
+     * Issue #3: the list is under "items", not "programs"
+     */
+    public function testListProgramsReturnsTheItemsIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['items' => self::programItems()])]);
+
+        $this->assertSame(self::programItems(), $client->suppliers()->listPrograms('sup-1'));
+    }
+
+    /**
+     * Issue #3: the spec has no clientId query parameter; the filter is applied client-side
+     */
+    public function testListProgramsFiltersOnClientIdClientSideIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['items' => self::programItems()])]);
+
+        $programs = $client->suppliers()->listPrograms('sup-1', 'client-1');
+
+        $this->assertSentRequest('GET', 'suppliers/sup-1/programs');
+        $this->assertSame([self::programItems()[1]], $programs);
+    }
+
+    /**
+     * Issue #3: the list is under "items", not "clients"
+     */
+    public function testListDiscountsReturnsTheItemsIssue3(): void
+    {
+        $items = [['clientId' => 'client-1', 'lastChange' => '2024-01-01T00:00:00Z']];
+        $client = $this->makeClient([self::json(['items' => $items])]);
+
+        $this->assertSame($items, $client->suppliers()->listDiscounts('sup-1'));
+    }
+
+    /**
+     * Issue #3: GET .../programs/{programId} lists the clients a program is published for
+     */
+    public function testListProgramClientsIssue3(): void
+    {
+        $items = [self::programItems()[0]];
+        $client = $this->makeClient([self::json(['items' => $items])]);
+
+        $this->assertSame($items, $client->suppliers()->listProgramClients('sup-1', 'prog-1'));
+        $this->assertSentRequest('GET', 'suppliers/sup-1/programs/prog-1');
+    }
+
+    /**
+     * Issue #3: one program's data is only available through POST /programs/bulk;
+     * getProgram() used to GET the client list and hydrate that into a Program
+     */
+    public function testGetProgramFetchesThroughBulkIssue3(): void
+    {
+        $data = self::programData();
+        $client = $this->makeClient([self::json(['programs' => [
+            ['orgUnitId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'client-1', 'error' => null, 'data' => $data],
+        ]])]);
+
+        $program = $client->suppliers()->getProgram('sup-1', 'prog-1', 'client-1');
+
+        $this->assertSentRequest('POST', 'programs/bulk', [], [
+            'programs' => [['orgUnitId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'client-1']],
+        ]);
+        $this->assertInstanceOf(Program::class, $program);
+        $this->assertSame('sup-1', $program->orgUnitId);
+        $this->assertSame('prog-1', $program->programId);
+        $this->assertSame('client-1', $program->clientId);
+        $this->assertSame($data, $program->programData);
+        $this->assertSame('Cursus', $program->getTitle('nl'));
+    }
+
+    public function testGetProgramThrowsTheApiErrorForAFailedItemIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['programs' => [
+            ['orgUnitId' => 'sup-1', 'programId' => 'prog-1', 'clientId' => 'client-1', 'error' => 'Program not found', 'data' => null],
+        ]])]);
+
+        try {
+            $client->suppliers()->getProgram('sup-1', 'prog-1', 'client-1');
+            $this->fail('Expected an ApiException');
+        } catch (ApiException $e) {
+            $this->assertStringContainsString('Program not found', $e->getMessage());
+            $this->assertSame('prog-1', $e->getContextValue('programId'));
+        }
+    }
+
+    /**
+     * Issue #3: the PUT response is a status object, not a program. upsertProgram()
+     * used to hydrate that into a Program whose typed properties were never set
+     */
+    public function testUpsertProgramReturnsTheSubmittedProgramIssue3(): void
+    {
+        $client = $this->makeClient([self::json(['status' => 'ok', 'validationMessages' => [], 'lastChange' => '2024-01-01T00:00:00Z'])]);
+
+        $program = $client->suppliers()->upsertProgram('sup-1', 'prog-1', 'client-1', self::programData());
+
+        $this->assertSame('sup-1', $program->orgUnitId);
+        $this->assertSame('prog-1', $program->programId);
+        $this->assertSame('client-1', $program->clientId);
+        $this->assertSame('v1', $program->format);
+        $this->assertSame(self::programData(), $program->programData);
+    }
+
+    /**
+     * Issue #3: the status (and its validation messages) is available through a new method
+     */
+    public function testUpsertProgramWithStatusReturnsTheApiStatusIssue3(): void
+    {
+        $status = ['status' => 'unchanged', 'validationMessages' => [], 'lastChange' => '2024-01-01T00:00:00Z'];
+        $client = $this->makeClient([self::json($status)]);
+
+        $this->assertSame($status, $client->suppliers()->upsertProgramWithStatus('sup-1', 'prog-1', 'client-1', self::programData()));
+        $this->assertSentRequest('PUT', 'suppliers/sup-1/programs/prog-1/client-1', [], self::programData());
+    }
+
+    /**
+     * Issue #3: a 400 on the PUT carries validationMessages (put_badrequest)
+     */
+    public function testUpsertProgramRejectedWithValidationMessagesThrowsValidationExceptionIssue3(): void
+    {
+        $client = $this->makeClient([self::json([
+            'status' => 400,
+            'error' => 'Validation failed',
+            'validationMessages' => [['level' => 'error', 'message' => 'Title missing', 'ruleName' => 'r1', 'forClient' => null]],
+        ], 400)]);
+
+        try {
+            $client->suppliers()->upsertProgram('sup-1', 'prog-1', 'client-1', self::programData());
+            $this->fail('Expected a ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame(['Title missing'], $e->getErrorMessages());
         }
     }
 }
