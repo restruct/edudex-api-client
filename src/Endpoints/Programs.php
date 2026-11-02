@@ -17,8 +17,8 @@ class Programs extends BaseEndpoint
      * Get multiple programs in a single request
      *
      * @param array $programs Array of program identifiers: [['orgUnitId' => '...', 'programId' => '...', 'clientId' => '...'], ...]
-     * @param string|null $viewerOrgUnitId Organization viewing the data
-     * @param string|null $viewDiscountsForOrgUnitId Organization to view discounts for
+     * @param string|null $viewerOrgUnitId View programs as this organization (sent as "viewer"; the API requires a special token for it)
+     * @param string|null $viewDiscountsForOrgUnitId Apply discounts for this client (sent as "viewDiscountsFor")
      * @return array Response with 'successful' and 'failed' arrays
      */
     public function bulk(
@@ -28,14 +28,15 @@ class Programs extends BaseEndpoint
     ): array {
         $this->validateRequired(compact('programs'), ['programs']);
 
-        $data = ['programs' => $programs];
+        # The spec's programs_bulk_requestbody carries the viewer options as body fields.
+        # They used to be built as a query array and passed as a 4th argument sendPost()
+        # does not take, so PHP dropped them (#1). Null values are left out.
+        $data = array_merge(['programs' => $programs], $this->buildQuery([
+            'viewer' => $viewerOrgUnitId,
+            'viewDiscountsFor' => $viewDiscountsForOrgUnitId,
+        ]));
 
-        $query = $this->buildQuery([
-            'viewerOrgUnitId' => $viewerOrgUnitId,
-            'viewDiscountsForOrgUnitId' => $viewDiscountsForOrgUnitId,
-        ]);
-
-        return $this->sendPost('programs/bulk', $data, [], $query);
+        return $this->sendPost('programs/bulk', $data);
     }
 
     /**
@@ -59,23 +60,5 @@ class Programs extends BaseEndpoint
     public function getFailed(array $bulkResponse): array
     {
         return $bulkResponse['failed'] ?? [];
-    }
-
-    /**
-     * Helper method to modify POST request to support query params
-     *
-     * @param string $path
-     * @param array $data
-     * @param array $headers
-     * @param array $query
-     * @return array
-     */
-    protected function post(string $path, array $data = [], array $headers = [], array $query = []): array
-    {
-        if (!empty($query)) {
-            $path .= '?' . http_build_query($query);
-        }
-
-        return parent::post($path, $data, $headers);
     }
 }
