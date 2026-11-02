@@ -137,10 +137,13 @@ $programData = [
 $client->suppliers()->upsertProgram('supplier-id', 'program-id', 'client-id', $programData);
 ```
 
-> **Known issue ([#1](https://github.com/restruct/edudex-api-client/issues/1)):** in 1.0.2,
-> `upsertProgram()` and `deleteProgram()` send their request without the client id, to a path the
-> EDU-DEX spec defines for GET only, so they are expected to fail against the API. Check the issue
-> before relying on them.
+`upsertProgram()` and `deleteProgram()` address `suppliers/{orgUnitId}/programs/{programId}/{clientId}`;
+pass `'public'` as the client id for the public catalog. (Before 1.1.0 they dropped the client id and
+called a path the spec defines for GET only, [#1](https://github.com/restruct/edudex-api-client/issues/1).)
+
+> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** the API answers a
+> program PUT with a status object (`status`, `validationMessages`, `lastChange`), not the program,
+> so the `Program` that `upsertProgram()` returns carries none of the program fields.
 
 ### Validating data
 
@@ -166,6 +169,12 @@ if ($result->isValid()) {
 }
 ```
 
+> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** per the bundled
+> spec, the validation response carries `validates` and `validationMessages` (with `level`), while
+> `ValidationResult` reads `messages` (with `severity`). Against a spec-shaped response
+> `isValid()` is therefore always `true`. Until this is fixed, read the raw response instead:
+> `$client->getHttpClient()->post('validations/programs', ['data' => $programData])['validates']`.
+
 `validateInstitute()` and `validateDiscounts()` work the same way. A `ValidationResult` also has
 `getWarnings()`, `getInfo()`, `getErrorCount()`/`getWarningCount()` and
 `getErrorMessages()`/`getWarningMessages()` (plain strings).
@@ -189,8 +198,14 @@ echo "Retrieved " . count($successful) . " programs\n";
 echo "Failed: " . count($failed) . " programs\n";
 ```
 
-`bulk()` also takes `$viewerOrgUnitId` and `$viewDiscountsForOrgUnitId` arguments; in 1.0.2 they
-are not sent ([#1](https://github.com/restruct/edudex-api-client/issues/1)).
+`bulk()` also takes `$viewerOrgUnitId` (sent as `viewer`; the API needs a special token for it) and
+`$viewDiscountsForOrgUnitId` (sent as `viewDiscountsFor`, to apply that client's discounts). Before
+1.1.0 neither was sent ([#1](https://github.com/restruct/edudex-api-client/issues/1)).
+
+> **Known issue ([#3](https://github.com/restruct/edudex-api-client/issues/3)):** per the bundled
+> spec, the bulk response lists every program under `programs`, each with `data` or `error`;
+> `getSuccessful()` and `getFailed()` read `successful`/`failed` keys and return empty arrays for
+> that shape. Read `$response['programs']` directly until this is fixed.
 
 ### Error handling
 

@@ -10,9 +10,9 @@ use Restruct\EduDex\Tests\ApiTestCase;
  * Suppliers endpoint: request building and response handling per the bundled spec
  *
  * Not covered here on purpose, because the current code disagrees with the spec:
- * - upsertProgram(), deleteProgram(): https://github.com/restruct/edudex-api-client/issues/1
- * - getProgram(), listPrograms() with a client id, and the response side of
- *   listPrograms()/listDiscounts(): https://github.com/restruct/edudex-api-client/issues/3
+ * getProgram(), listPrograms() with a client id, the response side of
+ * listPrograms()/listDiscounts() and of upsertProgram()
+ * (https://github.com/restruct/edudex-api-client/issues/3).
  * Their tests arrive with the fixes, failing first.
  */
 class SuppliersTest extends ApiTestCase
@@ -135,5 +135,86 @@ class SuppliersTest extends ApiTestCase
         $client->suppliers()->deleteDiscounts('sup-1', 'client-1');
 
         $this->assertSentRequest('DELETE', 'suppliers/sup-1/discounts/client-1');
+    }
+
+    /**
+     * A program body with every field the spec's program_in schema requires
+     *
+     * @return array
+     */
+    private static function programData(): array
+    {
+        return [
+            'editor' => 'Editor',
+            'format' => 'v1',
+            'generator' => 'unit-test',
+            'lastEdited' => '2024-01-01T00:00:00Z',
+            'programAdmission' => [],
+            'programClassification' => [],
+            'programContacts' => [],
+            'programCurriculum' => [],
+            'programDescriptions' => ['title' => ['nl' => 'Cursus']],
+            'programSchedule' => [],
+        ];
+    }
+
+    /**
+     * Regression for issue #1: the spec defines PUT only on .../programs/{programId}/{clientId}
+     */
+    public function testUpsertProgramPutsToThePathWithTheClientId(): void
+    {
+        $client = $this->makeClient([self::json(['status' => 'ok', 'validationMessages' => [], 'lastChange' => '2024-01-01T00:00:00Z'])]);
+
+        $client->suppliers()->upsertProgram('sup-1', 'prog-1', 'client-1', self::programData());
+
+        $this->assertSentRequest('PUT', 'suppliers/sup-1/programs/prog-1/client-1', [], self::programData());
+    }
+
+    /**
+     * Regression for issue #1: "public" is a valid client id segment (clientIdOrPublic)
+     */
+    public function testUpsertProgramForThePublicCatalog(): void
+    {
+        $client = $this->makeClient([self::json(['status' => 'ok', 'validationMessages' => [], 'lastChange' => '2024-01-01T00:00:00Z'])]);
+
+        $client->suppliers()->upsertProgram('sup-1', 'prog-1', 'public', self::programData());
+
+        $this->assertSentRequest('PUT', 'suppliers/sup-1/programs/prog-1/public', [], self::programData());
+    }
+
+    public function testUpsertProgramRejectsEmptyClientIdWithoutSending(): void
+    {
+        $client = $this->makeClient();
+
+        $this->expectException(EduDexException::class);
+        try {
+            $client->suppliers()->upsertProgram('sup-1', 'prog-1', '', self::programData());
+        } finally {
+            $this->assertCount(0, $this->history);
+        }
+    }
+
+    /**
+     * Regression for issue #1: the spec defines DELETE only on .../programs/{programId}/{clientId}
+     */
+    public function testDeleteProgramDeletesThePathWithTheClientId(): void
+    {
+        $client = $this->makeClient([self::noContent()]);
+
+        $client->suppliers()->deleteProgram('sup-1', 'prog-1', 'client-1');
+
+        $this->assertSentRequest('DELETE', 'suppliers/sup-1/programs/prog-1/client-1');
+    }
+
+    public function testDeleteProgramRejectsEmptyClientIdWithoutSending(): void
+    {
+        $client = $this->makeClient();
+
+        $this->expectException(EduDexException::class);
+        try {
+            $client->suppliers()->deleteProgram('sup-1', 'prog-1', '');
+        } finally {
+            $this->assertCount(0, $this->history);
+        }
     }
 }

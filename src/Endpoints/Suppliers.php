@@ -113,8 +113,10 @@ class Suppliers extends BaseEndpoint
             ['orgUnitId', 'programId', 'clientId', 'programData']
         );
 
-        $query = ['clientId' => $clientId];
-        $response = $this->sendPut("suppliers/{$orgUnitId}/programs/{$programId}", $programData, [], $query);
+        # The client id is a path segment (spec: clientIdOrPublic, so "public" works too).
+        # It used to go in a query array as a 4th argument sendPut() does not take, so PHP
+        # dropped it and the request hit .../programs/{programId}, which only has GET (#1)
+        $response = $this->sendPut("suppliers/{$orgUnitId}/programs/{$programId}/{$clientId}", $programData);
 
         return $this->hydrateModel(Program::class, $response);
     }
@@ -131,8 +133,8 @@ class Suppliers extends BaseEndpoint
     {
         $this->validateRequired(compact('orgUnitId', 'programId', 'clientId'), ['orgUnitId', 'programId', 'clientId']);
 
-        $query = ['clientId' => $clientId];
-        $this->sendDelete("suppliers/{$orgUnitId}/programs/{$programId}", [], $query);
+        # Client id in the path, as for upsertProgram() (#1)
+        $this->sendDelete("suppliers/{$orgUnitId}/programs/{$programId}/{$clientId}");
     }
 
     /**
@@ -184,40 +186,5 @@ class Suppliers extends BaseEndpoint
     public function deleteDiscounts(string $orgUnitId, string $clientId): void
     {
         $this->sendDelete("suppliers/{$orgUnitId}/discounts/{$clientId}");
-    }
-
-    /**
-     * Helper method to modify PUT request to support query params
-     *
-     * @param string $path
-     * @param array $data
-     * @param array $headers
-     * @param array $query
-     * @return array
-     */
-    protected function put(string $path, array $data = [], array $headers = [], array $query = []): array
-    {
-        if (!empty($query)) {
-            $path .= '?' . http_build_query($query);
-        }
-
-        return parent::put($path, $data, $headers);
-    }
-
-    /**
-     * Helper method to modify DELETE request to support query params
-     *
-     * @param string $path
-     * @param array $headers
-     * @param array $query
-     * @return array
-     */
-    protected function delete(string $path, array $headers = [], array $query = []): array
-    {
-        if (!empty($query)) {
-            $path .= '?' . http_build_query($query);
-        }
-
-        return parent::delete($path, $headers);
     }
 }
