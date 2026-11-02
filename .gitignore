@@ -5,6 +5,7 @@ composer.lock
 # PHPUnit
 /phpunit.xml
 /.phpunit.result.cache
+/.phpunit.cache/
 /coverage/
 
 # PHPStan
