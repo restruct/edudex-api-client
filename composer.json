@@ -1,10 +1,13 @@
 {
     "name": "restruct/edudex-api-client",
-    "description": "PHP client library for the EDU-DEX Data API. Framework-agnostic with optional SilverStripe integration.",
+    "description": "PHP client for the EDU-DEX Data API: endpoint classes, typed models, validation and exceptions, framework-agnostic with optional Silverstripe 5 integration",
     "type": "library",
     "keywords": [
+        "php",
         "edudex",
         "api-client",
+        "openapi",
+        "education",
         "silverstripe"
     ],
     "homepage": "https://github.com/restruct/edudex-api-client",

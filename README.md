@@ -1,37 +1,41 @@
-# EduDex API Client
+# EDU-DEX API client for PHP
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue.svg)](https://php.net)
+Read and publish training programs, catalogs, webhooks and accreditations in the
+[EDU-DEX Data API](https://api.edudex.nl/data/v1/) from PHP: an endpoint class per API area, typed
+models with multi-language strings, validation before you submit, and exceptions per kind of
+failure. Framework-agnostic, with optional Silverstripe 5 integration that adds an EDU-DEX settings
+tab to the CMS.
 
 *Maintained by [Restruct](https://github.com/restruct). If this module saves you time, you can
 [support ongoing maintenance](https://github.com/sponsors/restruct).*
 
-PHP client library for the [EDU-DEX Data API](https://api.edudex.nl/data/v1/). Framework-agnostic with optional SilverStripe integration.
+## The EDU-DEX Data API is an OpenAPI spec, not a PHP library
 
-## Features
+EDU-DEX is the open data standard for exchanging and publishing training course information. Its
+Data API is described by a large OpenAPI specification: bearer-token authentication, JSON bodies
+with localized strings, catalogs that are static or filter-based, and validation responses with
+error and warning messages per field. Talking to it directly means writing the HTTP calls, the
+JSON mapping and the error handling yourself.
 
-- 🎯 **Complete API Coverage** - All endpoints from the EDU-DEX OpenAPI specification
-- 🔌 **Framework Agnostic** - Works with any PHP 8.1+ project
-- 🔧 **Optional SilverStripe Integration** - Full Config API, Extensions, and Injector support
-- 🎨 **Clean Architecture** - PSR-4 autoloading, typed models, endpoint classes
-- 🛡️ **Type Safe** - PHP 8.1+ with strict type hints and return types
-- 📦 **Smart Models** - Automatic hydration, serialization, and type casting
-- 🌍 **Localization** - Built-in `LocalizedString` helper for multi-language content
-- ✅ **Validation** - Pre-submission validation for programs, metadata, and discounts
-- 🔐 **Secure** - Bearer token authentication with environment variable support
-- 📝 **Well Documented** - Comprehensive PHPDoc blocks and usage examples
+This library wraps it: `$client->suppliers()->getProgram(...)` returns a `Program` model,
+`$client->validations()->validateProgram(...)` returns a `ValidationResult` you can loop over, and
+an HTTP error arrives as an `AuthenticationException`, `ValidationException` or `ApiException`.
 
-## Installation
+## Programs, catalogs and validation from PHP
 
-Install via Composer:
+- **API coverage**: organizations, suppliers, accreditors, programs and validations, following the
+  bundled EDU-DEX OpenAPI specification
+- **Framework agnostic**: works with any PHP 8.1+ project
+- **Optional Silverstripe integration**: Config API, a SiteConfig extension and an Injector mapping
+- **Clean architecture**: PSR-4 autoloading, typed models, endpoint classes
+- **Type safe**: PHP 8.1+ with strict type hints and return types
+- **Smart models**: automatic hydration, serialization and type casting
+- **Localization**: built-in `LocalizedString` helper for multi-language content
+- **Validation**: pre-submission validation for programs, institute metadata and discounts
+- **Secure**: bearer token authentication with environment variable support
+- **Documented**: PHPDoc blocks throughout and usage guides in `docs/`
 
-```bash
-composer require restruct/edudex-api-client
-```
-
-## Quick Start
-
-### Basic Usage (Any PHP Project)
+### Quick start (any PHP project)
 
 ```php
 <?php
@@ -53,6 +57,9 @@ foreach ($organizations as $org) {
 }
 ```
 
+The constructor throws an `AuthenticationException` when no token is passed, configured or set in
+`EDUDEX_API_TOKEN`.
+
 ### Configuration
 
 ```php
@@ -71,9 +78,14 @@ $client = Client::fromConfig($config);
 $client = new Client();
 ```
 
-## Usage Examples
+The token is taken from the argument, then `bearer_token` in the config array, then
+`EDUDEX_API_TOKEN`; the base URL from the argument, then `api_base_url`, then the default
+`https://api.edudex.nl/data/v1/`. The timeout defaults to 30 seconds. The config array is also
+passed to Guzzle, so other Guzzle client options work there too. Pass a PSR-3 logger as the last
+argument of `new Client()` or `Client::fromConfig()` to log every request and response (debug
+level) and every failed request (error level).
 
-### Working with Organizations
+### Working with organizations
 
 ```php
 use Restruct\EduDex\Client;
@@ -98,7 +110,7 @@ foreach ($catalogs as $catalog) {
 }
 ```
 
-### Managing Programs
+### Managing programs
 
 ```php
 // List programs for a supplier
@@ -125,22 +137,27 @@ $programData = [
 $client->suppliers()->upsertProgram('supplier-id', 'program-id', 'client-id', $programData);
 ```
 
-### Validating Data
+> **Known issue ([#1](https://github.com/restruct/edudex-api-client/issues/1)):** in 1.0.2,
+> `upsertProgram()` and `deleteProgram()` send their request without the client id, to a path the
+> EDU-DEX spec defines for GET only, so they are expected to fail against the API. Check the issue
+> before relying on them.
+
+### Validating data
 
 ```php
 // Validate program before submission
 $result = $client->validations()->validateProgram($programData);
 
 if ($result->isValid()) {
-    echo "✓ Validation passed!\n";
+    echo "Validation passed\n";
 
     // Submit the program
     $client->suppliers()->upsertProgram(...);
 } else {
-    echo "✗ Validation failed:\n";
+    echo "Validation failed:\n";
 
     foreach ($result->getErrors() as $error) {
-        echo "  • {$error->message}";
+        echo "  - {$error->message}";
         if ($error->contextPath) {
             echo " (at {$error->contextPath})";
         }
@@ -149,7 +166,11 @@ if ($result->isValid()) {
 }
 ```
 
-### Bulk Operations
+`validateInstitute()` and `validateDiscounts()` work the same way. A `ValidationResult` also has
+`getWarnings()`, `getInfo()`, `getErrorCount()`/`getWarningCount()` and
+`getErrorMessages()`/`getWarningMessages()` (plain strings).
+
+### Bulk operations
 
 ```php
 // Fetch multiple programs at once
@@ -168,7 +189,10 @@ echo "Retrieved " . count($successful) . " programs\n";
 echo "Failed: " . count($failed) . " programs\n";
 ```
 
-### Error Handling
+`bulk()` also takes `$viewerOrgUnitId` and `$viewDiscountsForOrgUnitId` arguments; in 1.0.2 they
+are not sent ([#1](https://github.com/restruct/edudex-api-client/issues/1)).
+
+### Error handling
 
 ```php
 use Restruct\EduDex\Exceptions\AuthenticationException;
@@ -199,16 +223,20 @@ try {
 }
 ```
 
-## SilverStripe Integration
+A `ValidationException` is thrown for a 400 response that carries validation messages; its
+`getErrors()` and `getWarnings()` return the API's message arrays. Other 4xx responses, 404, 408,
+5xx and network errors (no response at all) become an `ApiException`. All of them extend `EduDexException`.
 
-For SilverStripe projects, use the optional integration layer:
+### Silverstripe integration
+
+For Silverstripe projects, use the optional integration layer:
 
 ```bash
 composer require restruct/edudex-api-client
 composer require silverstripe/framework:^5.0
 ```
 
-### Configuration
+#### Configuration
 
 The package ships its own `_config/edudex.yml`, so in a Silverstripe project two things are applied
 automatically, without any project config:
@@ -216,6 +244,14 @@ automatically, without any project config:
 - `SiteConfigExtension` is added to `SiteConfig` (an "EduDex" tab under Settings in the CMS; run
   `dev/build` after installing).
 - The Injector maps `Restruct\EduDex\Client` to `SilverStripeClient`.
+
+The EduDex tab is shown to administrators only. It holds an API base URL and a bearer token, and
+shows a connection status: each time the tab is loaded it calls the API (`organizations()->list()`)
+with the configured token, or `EDUDEX_API_TOKEN`, and reports how many organizations it found or
+why it failed. The token and base URL stored there are used by the extension's own
+`getEduDexClient()`, `getEduDexToken()` and `getEduDexBaseUrl()` on `SiteConfig`. `SilverStripeClient`
+does not read them: it takes its token from the constructor argument or `EDUDEX_API_TOKEN`, and its
+base URL from the constructor argument or config.
 
 Client settings are optional; override them in your own config, e.g. `app/_config/edudex.yml`:
 
@@ -228,6 +264,10 @@ Restruct\EduDex\Integration\SilverStripe\SilverStripeClient:
   timeout: 30
 ```
 
+`SilverStripeClient` also has a `debug` setting (default `false`), which is passed to Guzzle as its
+`debug` request option, and a `cache_ttl` setting (default `3600`), which it only exposes through
+`getCacheTTL()`: the client itself caches nothing.
+
 To switch the CMS integration off, remove the extension in your project's `app/_config.php`. The
 package adds it as an unnamed list entry, which YAML config cannot unset, so this has to be PHP:
 
@@ -238,7 +278,7 @@ use SilverStripe\SiteConfig\SiteConfig;
 SiteConfig::remove_extension(SiteConfigExtension::class);
 ```
 
-### Usage in SilverStripe
+#### Usage in Silverstripe
 
 ```php
 use Restruct\EduDex\Integration\SilverStripe\SilverStripeClient;
@@ -251,62 +291,83 @@ $client = Injector::inst()->get(SilverStripeClient::class);
 
 // Same API as standalone
 $organizations = $client->organizations()->list();
+
+// Or with the token and base URL stored in the CMS (null when no token is set)
+$client = SiteConfig::current_site_config()->getEduDexClient();
 ```
 
 See [docs/SILVERSTRIPE_INTEGRATION.md](docs/SILVERSTRIPE_INTEGRATION.md) for complete documentation.
 
-## API Reference
+## Technical
 
-### Endpoints
+### Version compatibility
 
-- **Organizations** - Manage organizations, catalogs, and webhooks
-- **Suppliers** - Supplier management, programs, discounts, metadata
-- **Accreditors** - Accreditor management and accreditations
-- **Programs** - Bulk program operations
-- **Validations** - Validate programs, metadata, and discounts
+| Branch | Package version | PHP | Guzzle | Silverstripe integration |
+|--------|-----------------|-----|--------|--------------------------|
+| `main` | `1.x` | 8.1+ | 7 | Silverstripe 5 |
+| `php74-ss37-backport` | `0.0.x` | 7.4 | 6 | Silverstripe 3.7 |
 
-### Models
+`composer.json` on each branch is the source of truth for exact constraints.
 
-- `Organization` - Organization with roles and accreditations
-- `Supplier` - Training provider
-- `Accreditor` - Accreditation organization
-- `Accreditation` - Supplier accreditation with validity
-- `StaticCatalog` - Manual program catalog
-- `DynamicCatalog` - Automatic catalog with filters
-- `Webhook` - Event notification endpoint
-- `Program` - Training program/course
-- `ValidationResult` - Validation response
+### Requirements
 
-### Type Helpers
-
-- `LocalizedString` - Multi-language content handler
-- `ValidationMessage` - Validation message with severity
-
-### Exceptions
-
-- `EduDexException` - Base exception
-- `AuthenticationException` - 401/403 errors
-- `ValidationException` - 400 validation errors
-- `ApiException` - Other HTTP errors
-
-## Documentation
-
-- **[Standalone Usage Guide](docs/STANDALONE_USAGE.md)** - Complete guide for non-SilverStripe projects
-- **[SilverStripe Integration](docs/SILVERSTRIPE_INTEGRATION.md)** - SilverStripe-specific setup and usage
-- **[Implementation Details](docs/IMPLEMENTATION.md)** - Technical implementation overview
-- **[Working Examples](examples/)** - Ready-to-run code examples
-
-## Requirements
-
-- PHP 8.1 or higher (PHP 7.4 version in backport branch)
+- PHP 8.1 or higher (PHP 7.4 version in the `php74-ss37-backport` branch)
 - GuzzleHTTP ^7.0
-- PSR-3 Logger interface
+- PSR-3 Logger interface (`psr/log`)
 
 **Optional:**
-- SilverStripe Framework ^5.0 (for SilverStripe integration; `SiteConfigExtension` extends
+- Silverstripe Framework ^5.0 (for Silverstripe integration; `SiteConfigExtension` extends
   `DataExtension`, which Silverstripe 6 removed, so the integration layer is Silverstripe 5 only)
 
-## Testing
+### Installation
+
+```bash
+composer require restruct/edudex-api-client
+```
+
+### API reference
+
+#### Endpoints
+
+- **Organizations** (`$client->organizations()`): organizations, static and dynamic catalogs,
+  catalog programs, webhooks
+- **Suppliers** (`$client->suppliers()`): suppliers, metadata, programs, discounts
+- **Accreditors** (`$client->accreditors()`): accreditors and their accreditations
+- **Programs** (`$client->programs()`): bulk program retrieval
+- **Validations** (`$client->validations()`): validate programs, institute metadata and discounts
+
+#### Models
+
+- `Organization`: organization with roles and accreditations
+- `Supplier`: training provider
+- `Accreditor`: accreditation organization
+- `Accreditation`: supplier accreditation with validity
+- `StaticCatalog`: manual program catalog
+- `DynamicCatalog`: automatic catalog with filters
+- `Webhook`: event notification endpoint
+- `Program`: training program/course
+- `ValidationResult`: validation response
+
+#### Type helpers
+
+- `LocalizedString`: multi-language content handler
+- `ValidationMessage`: validation message with severity
+
+#### Exceptions
+
+- `EduDexException`: base exception
+- `AuthenticationException`: 401/403 errors, and a missing token
+- `ValidationException`: 400 validation errors
+- `ApiException`: other HTTP errors
+
+### Documentation
+
+- **[Standalone Usage Guide](docs/STANDALONE_USAGE.md)**: complete guide for non-Silverstripe projects
+- **[Silverstripe Integration](docs/SILVERSTRIPE_INTEGRATION.md)**: Silverstripe-specific setup and usage
+- **[Implementation Details](docs/IMPLEMENTATION.md)**: technical implementation overview
+- **[Working Examples](examples/)**: ready-to-run code examples
+
+### Testing
 
 There is no test suite yet: `phpunit.xml.dist` points at a `tests/` directory that does not exist, so
 `composer test` has nothing to run. The static analysis and code style scripts:
@@ -325,7 +386,7 @@ composer cs-check
 composer cs-fix
 ```
 
-## Support
+### Support
 
 - **Issues**: https://github.com/restruct/edudex-api-client/issues
 - **EDU-DEX Data API Documentation**: https://api.edudex.nl/data/v1/
@@ -333,15 +394,14 @@ composer cs-fix
 - **EDUDOX**: https://www.edudex.nl/edudox/
 - **API Getting started**: https://mijn.edudex.nl/api-getting-started/
 
-## License
+### License
 
 This library is open-sourced software licensed under the [MIT license](LICENSE).
 
 The MIT license covers this library's own code. The bundled `openapi-edudex-spec.json` is the EDU-DEX Data API specification, published by EDU-DEX; it is included for reference and code generation only, is not covered by the MIT license, and no separate license for it is stated by EDU-DEX. EDU-DEX is an open data standard for exchanging and publishing training course information; see https://www.edudex.nl for its terms of use.
 
-## Credits
+### Credits
 
-- **Michael van Schaik** (Restruct.nl) - development
-- **Bart van Irsel** (Webium) - AI consultant/guru
+- **Michael van Schaik** (Restruct.nl): development
+- **Bart van Irsel** (Webium): AI consultant/guru
 - EDU-DEX API by WebHare BV
-
