@@ -156,8 +156,10 @@ optional client id after fetching. (Before 1.3.0, `getProgram()` read the client
 `Program`, and `listPrograms()`/`listDiscounts()` always returned empty arrays,
 [#3](https://github.com/restruct/edudex-api-client/issues/3).)
 
-> **Checked against the spec only:** these response shapes follow the bundled
-> `openapi-edudex-spec.json` and are covered by tests against it, not against the live API.
+> **Checked against the live API (1.3.0, November 2026):** `listPrograms()`, `listProgramClients()`,
+> `getProgram()` and an unchanged `upsertProgramWithStatus()` (status `unchanged`) returned the shapes
+> the bundled `openapi-edudex-spec.json` describes. `listDiscounts()` was only run against a supplier
+> with no discounts, so reading its items is still checked against the spec only.
 
 ### Validating data
 
@@ -188,8 +190,9 @@ Messages come from the response's `validationMessages`: `level` becomes the seve
 the `code`, and `forClient` sits in `context`. Before 1.3.0 these were not read, so `isValid()` was
 always `true` ([#3](https://github.com/restruct/edudex-api-client/issues/3)).
 
-> **Checked against the spec only:** the response shape follows the bundled
-> `openapi-edudex-spec.json`, not a recorded live response.
+> **Checked against the live API (1.3.0, November 2026)** for `validateProgram()`: an invalid and a
+> valid program gave the expected verdict and messages. `validateInstitute()` and
+> `validateDiscounts()` are checked against the spec only.
 
 `validateInstitute()` and `validateDiscounts()` work the same way. A `ValidationResult` also has
 `getWarnings()`, `getInfo()`, `getErrorCount()`/`getWarningCount()` and
@@ -224,8 +227,9 @@ whole `data` as `programData`); `getFailed()` returns the items with an error. B
 read keys the spec does not have and returned empty arrays
 ([#3](https://github.com/restruct/edudex-api-client/issues/3)).
 
-> **Checked against the spec only:** the bulk response shape follows the bundled
-> `openapi-edudex-spec.json`, not a recorded live response.
+> **Checked against the live API (1.3.0, November 2026)** for plain program fetches (through
+> `getProgram()`). The `viewer` and `viewDiscountsFor` arguments, and `bulkadd`/`bulkremove`, are
+> checked against the spec only.
 
 ### Error handling
 
@@ -420,8 +424,9 @@ The PHPUnit suite in `tests/` drives the real `Client` and `GuzzleClient` agains
 also checked against the bundled `openapi-edudex-spec.json`: the operation (method and path), its
 query parameters and the top-level shape of the JSON body.
 
-The suite has never been run against the live API. Request and response shapes are therefore
-confirmed against the bundled spec only; if the live API turns out to differ, please open an issue.
+The suite itself never calls the live API. The endpoints marked "checked against the live API" above
+were also exercised by hand against it (1.3.0, November 2026); the rest are confirmed against the
+bundled spec only. If the live API turns out to differ, please open an issue.
 
 ```bash
 # Install dev dependencies
