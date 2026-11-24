@@ -11,7 +11,8 @@ use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextField;
-use SilverStripe\ORM\DataExtension;
+// use SilverStripe\ORM\DataExtension;
+use SilverStripe\Core\Extension;
 use SilverStripe\Security\Permission;
 use SilverStripe\SiteConfig\SiteConfigLeftAndMain;
 
@@ -23,7 +24,10 @@ use SilverStripe\SiteConfig\SiteConfigLeftAndMain;
  * @package Restruct\EduDex\Integration\SilverStripe\Extensions
  * @property \SilverStripe\SiteConfig\SiteConfig|\Restruct\EduDex\Integration\SilverStripe\Extensions\SiteConfigExtension $owner
  */
-class SiteConfigExtension extends DataExtension
+// class SiteConfigExtension extends DataExtension
+// Extension, not DataExtension (#9): DataExtension is deprecated since framework 5.3 and removed in 6;
+// since 5.3 a plain Extension applies $db/$defaults to a DataObject as well
+class SiteConfigExtension extends Extension
 {
     /**
      * Database fields
@@ -139,11 +143,24 @@ class SiteConfigExtension extends DataExtension
      */
     protected function isConnectionCheckRequested(): bool
     {
-        if (!Controller::has_curr()) {
-            return false;
+//        if (!Controller::has_curr()) {
+//            return false;
+//        }
+        # #9: framework 6 removed Controller::has_curr(), and framework 5's Controller::curr() raises an
+        # E_USER_WARNING on an empty stack, so use has_curr() where it exists and the nullable curr() on 6
+        if (method_exists(Controller::class, 'has_curr')) {
+            if (!Controller::has_curr()) {
+                return false;
+            }
+            $controller = Controller::curr();
+        } else {
+            $controller = Controller::curr();
+            if (!$controller) {
+                return false;
+            }
         }
 
-        return (bool) Controller::curr()->getRequest()->getVar(self::CHECK_VAR);
+        return (bool) $controller->getRequest()->getVar(self::CHECK_VAR);
     }
 
     /**

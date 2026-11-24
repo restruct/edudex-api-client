@@ -4,6 +4,20 @@ All notable changes to this package. Versions follow [semantic versioning](https
 Entries before 1.1.0 were not recorded here; see the
 [GitHub releases and tags](https://github.com/restruct/edudex-api-client/tags).
 
+## 1.4.0 - 2026-11-24
+
+Fixes [#9](https://github.com/restruct/edudex-api-client/issues/9): the Silverstripe integration
+fataled on Silverstripe 6.
+
+### Fixed
+
+- `SiteConfigExtension` extends `Extension` instead of `DataExtension`, which Silverstripe 6
+  removed. Since framework 5.3 a plain `Extension` applies `$db` and `$defaults` too, so the
+  integration now needs framework 5.4 or 6.
+- The connection check no longer calls `Controller::has_curr()` on Silverstripe 6, where it was
+  removed. On framework 5 it still uses `has_curr()`, because `Controller::curr()` there raises a
+  warning when no controller is current (for example in a task or a queued job).
+
 ## 1.3.0 - 2026-11-02
 
 Fixes [#3](https://github.com/restruct/edudex-api-client/issues/3): requests and responses that

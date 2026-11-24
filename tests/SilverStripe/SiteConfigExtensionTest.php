@@ -24,7 +24,7 @@ use SilverStripe\SiteConfig\SiteConfig;
  * The connection check itself is only exercised against a closed loopback port
  * (127.0.0.1:1), never against the live API.
  *
- * Needs a booted Silverstripe 5 app with a database (CI runs it in a host project);
+ * Needs a booted Silverstripe 5.4 or 6 app with a database (CI runs it in a host project);
  * excluded from the standalone suite in phpunit.xml.dist. Written for PHPUnit 9.
  */
 class SiteConfigExtensionTest extends SapphireTest
@@ -195,6 +195,30 @@ class SiteConfigExtensionTest extends SapphireTest
         $content = $this->statusField($config, ['edudexcheck' => '1'])->getContent();
 
         $this->assertStringContainsString('Connection failed', $content);
+    }
+
+    /**
+     * Issue #9: without a current controller (a task, a queued job) the connection check is not
+     * requested, and asking must not warn or fatal. Framework 5's Controller::curr() raises an
+     * E_USER_WARNING when the stack is empty and framework 6 removed Controller::has_curr(), so
+     * the extension has to handle both.
+     */
+    public function testConnectionCheckIsNotRequestedWithoutACurrentController(): void
+    {
+        # SapphireTest may have a controller on the stack (it does on framework 5): empty the stack
+        # for this assertion and put it back afterwards
+        $stack = new \ReflectionProperty(Controller::class, 'controller_stack');
+        $stack->setAccessible(true);
+        $saved = $stack->getValue();
+        $stack->setValue(null, []);
+        try {
+            $method = new \ReflectionMethod(SiteConfigExtension::class, 'isConnectionCheckRequested');
+            $method->setAccessible(true);
+            # failOnWarning turns framework 5's E_USER_WARNING from Controller::curr() into a failure
+            $this->assertFalse($method->invoke(new SiteConfigExtension()));
+        } finally {
+            $stack->setValue(null, $saved);
+        }
     }
 
     /**
