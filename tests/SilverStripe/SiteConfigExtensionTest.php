@@ -24,7 +24,7 @@ use SilverStripe\SiteConfig\SiteConfig;
  * The connection check itself is only exercised against a closed loopback port
  * (127.0.0.1:1), never against the live API.
  *
- * Needs a booted Silverstripe 5 app with a database (CI runs it in a host project);
+ * Needs a booted Silverstripe 5.4 or 6 app with a database (CI runs it in a host project);
  * excluded from the standalone suite in phpunit.xml.dist. Written for PHPUnit 9.
  */
 class SiteConfigExtensionTest extends SapphireTest

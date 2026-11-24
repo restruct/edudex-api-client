@@ -3,8 +3,8 @@
 Read and publish training programs, catalogs, webhooks and accreditations in the
 [EDU-DEX Data API](https://api.edudex.nl/data/v1/) from PHP: an endpoint class per API area, typed
 models with multi-language strings, validation before you submit, and exceptions per kind of
-failure. Framework-agnostic, with optional Silverstripe 5 integration that adds an EDU-DEX settings
-tab to the CMS.
+failure. Framework-agnostic, with optional Silverstripe 5.4/6 integration that adds an EDU-DEX
+settings tab to the CMS.
 
 *Maintained by [Restruct](https://github.com/restruct). If this module saves you time, you can
 [support ongoing maintenance](https://github.com/sponsors/restruct).*
@@ -349,7 +349,7 @@ See [docs/SILVERSTRIPE_INTEGRATION.md](docs/SILVERSTRIPE_INTEGRATION.md) for com
 
 | Branch | Package version | PHP | Guzzle | Silverstripe integration |
 |--------|-----------------|-----|--------|--------------------------|
-| `main` | `1.x` | 8.1+ | 7 | Silverstripe 5 |
+| `main` | `1.x` | 8.1+ | 7 | Silverstripe 5.4 and 6 (from 1.4.0; 5 only before) |
 | `php74-ss37-backport` | `0.0.x` | 7.4 | 6 | Silverstripe 3.7 |
 
 `composer.json` on each branch is the source of truth for exact constraints.
@@ -361,8 +361,9 @@ See [docs/SILVERSTRIPE_INTEGRATION.md](docs/SILVERSTRIPE_INTEGRATION.md) for com
 - PSR-3 Logger interface (`psr/log`)
 
 **Optional:**
-- Silverstripe Framework ^5.0 (for Silverstripe integration; `SiteConfigExtension` extends
-  `DataExtension`, which Silverstripe 6 removed, so the integration layer is Silverstripe 5 only)
+- Silverstripe Framework ^5.4 or ^6 (for Silverstripe integration). Since 1.4.0 `SiteConfigExtension`
+  extends `Extension`, which applies its database fields from framework 5.3 on; 1.3.0 and earlier
+  extended `DataExtension` and fatal on Silverstripe 6.
 
 ### Installation
 
@@ -436,8 +437,8 @@ composer install
 composer test
 ```
 
-`tests/SilverStripe/` needs a booted Silverstripe 5 app and is excluded from the standalone run. CI
-(`.github/workflows/ci.yml`) runs it in a throwaway Silverstripe host project, next to the standalone
+`tests/SilverStripe/` needs a booted Silverstripe 5.4 or 6 app and is excluded from the standalone run.
+CI (`.github/workflows/ci.yml`) runs it in a throwaway Silverstripe 5 host project, next to the standalone
 suite on every PHP version `composer.json` allows.
 
 The static analysis and code style scripts:
