@@ -198,6 +198,30 @@ class SiteConfigExtensionTest extends SapphireTest
     }
 
     /**
+     * Issue #9: without a current controller (a task, a queued job) the connection check is not
+     * requested, and asking must not warn or fatal. Framework 5's Controller::curr() raises an
+     * E_USER_WARNING when the stack is empty and framework 6 removed Controller::has_curr(), so
+     * the extension has to handle both.
+     */
+    public function testConnectionCheckIsNotRequestedWithoutACurrentController(): void
+    {
+        # SapphireTest may have a controller on the stack (it does on framework 5): empty the stack
+        # for this assertion and put it back afterwards
+        $stack = new \ReflectionProperty(Controller::class, 'controller_stack');
+        $stack->setAccessible(true);
+        $saved = $stack->getValue();
+        $stack->setValue(null, []);
+        try {
+            $method = new \ReflectionMethod(SiteConfigExtension::class, 'isConnectionCheckRequested');
+            $method->setAccessible(true);
+            # failOnWarning turns framework 5's E_USER_WARNING from Controller::curr() into a failure
+            $this->assertFalse($method->invoke(new SiteConfigExtension()));
+        } finally {
+            $stack->setValue(null, $saved);
+        }
+    }
+
+    /**
      * Issue #4: getEduDexClient() used "new Client", so SilverStripeClient config
      * (timeout) and the Injector mapping did not apply
      */
