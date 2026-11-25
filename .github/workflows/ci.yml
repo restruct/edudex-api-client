@@ -56,14 +56,27 @@ jobs:
         run: vendor/bin/phpunit
 
   silverstripe:
-    name: Silverstripe 5 / PHP ${{ matrix.php }}
+    name: Silverstripe ${{ matrix.silverstripe }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # The integration layer is Silverstripe 5 only (SiteConfigExtension extends DataExtension,
-        # which Silverstripe 6 removed), at the oldest and newest PHP used with it here
-        php: ['8.1', '8.3']
+        # Was: "The integration layer is Silverstripe 5 only (SiteConfigExtension extends DataExtension,
+        # which Silverstripe 6 removed)". Since 1.4.0 (#9) it supports 5.4 and 6: Silverstripe 5 at
+        # the oldest and newest PHP used with it here, Silverstripe 6 at its PHP floor (8.3)
+        include:
+          - silverstripe: '5'
+            php: '8.1'
+            recipe: '^5'
+            testing: '^3'
+          - silverstripe: '5'
+            php: '8.3'
+            recipe: '^5'
+            testing: '^3'
+          - silverstripe: '6'
+            php: '8.3'
+            recipe: '^6'
+            testing: '^4'
 
     services:
       database:
@@ -102,8 +115,8 @@ jobs:
           {
             "name": "restruct/ci-host",
             "require": {
-              "silverstripe/recipe-cms": "^5",
-              "silverstripe/recipe-testing": "^3",
+              "silverstripe/recipe-cms": "${{ matrix.recipe }}",
+              "silverstripe/recipe-testing": "${{ matrix.testing }}",
               "restruct/edudex-api-client": "*"
             },
             "repositories": [
@@ -117,7 +130,10 @@ jobs:
           # Silverstripe 5 is security-fixes-only and every silverstripe/cms 5 release is covered by
           # an advisory that will not be patched there, so Composer refuses it under the default
           # policy. Blocking is disabled HERE ONLY, in a throwaway CI host project.
-          composer config policy.advisories.block false
+          # Silverstripe 6 releases are not affected, so its leg keeps the default policy
+          if [ "${{ matrix.silverstripe }}" = "5" ]; then
+            composer config policy.advisories.block false
+          fi
           composer update --no-interaction --no-progress
 
       - name: Configure the test suite
@@ -146,8 +162,14 @@ jobs:
           SS_DATABASE_PASSWORD: root
           SS_DATABASE_NAME: ss_ci
           SS_ENVIRONMENT_TYPE: dev
-        # Framework 5 reads the manifest flush only from a path-first `flush=1` argument
-        run: vendor/bin/phpunit vendor/restruct/edudex-api-client/tests/SilverStripe flush=1
+        # Framework 5 reads the manifest flush only from a path-first `flush=1` argument; framework 6
+        # (PHPUnit 11) rejects that argument and reads SS_PHPUNIT_FLUSH instead
+        run: |
+          if [ "${{ matrix.silverstripe }}" = "5" ]; then
+            vendor/bin/phpunit vendor/restruct/edudex-api-client/tests/SilverStripe flush=1
+          else
+            SS_PHPUNIT_FLUSH=1 vendor/bin/phpunit vendor/restruct/edudex-api-client/tests/SilverStripe
+          fi
 
       - name: Boot the app and build the database
         # Proves the package's _config (SiteConfig extension, Injector mapping) survives a real boot
@@ -160,4 +182,10 @@ jobs:
           SS_DATABASE_PASSWORD: root
           SS_DATABASE_NAME: ss_ci
           SS_ENVIRONMENT_TYPE: dev
-        run: vendor/bin/sake dev/build flush=1
+        # Silverstripe 6's sake is a Symfony console: dev/build became db:build
+        run: |
+          if [ "${{ matrix.silverstripe }}" = "5" ]; then
+            vendor/bin/sake dev/build flush=1
+          else
+            vendor/bin/sake db:build --flush
+          fi
