@@ -4,6 +4,14 @@ All notable changes to this package. Versions follow [semantic versioning](https
 Entries before 1.1.0 were not recorded here; see the
 [GitHub releases and tags](https://github.com/restruct/edudex-api-client/tags).
 
+## 1.4.1 - 2026-11-25
+
+### Changed
+
+- `composer.json` declares `conflict: silverstripe/framework <5.3 || >=7`, so a project on an
+  unsupported Silverstripe version is refused at install instead of fataling at runtime (#9). It is a
+  conflict, not a requirement: the plain PHP client still installs without Silverstripe.
+
 ## 1.4.0 - 2026-11-24
 
 Fixes [#9](https://github.com/restruct/edudex-api-client/issues/9): the Silverstripe integration
